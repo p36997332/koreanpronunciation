@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>외국인을 위한 한국어 발음 교정 & 학습 관리</title>
+    <style>
+        :root {
+            --primary-color: #3B82F6;
+            --primary-dark: #1D4ED8;
+            --accent-color: #EF4444;
+            --bg-color: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-main: #0F172A;
+            --text-sub: #64748B;
+            --border-color: #E2E8F0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* 헤더 & 탭 */
+        header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-tabs {
+            display: flex;
+            max-width: 600px;
+            margin: 0 auto;
+            background: #F1F5F9;
+            padding: 4px;
+            border-radius: 12px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--primary-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        main {
+            flex: 1;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* 1. 메인 발음 교정 탭 스타일 */
+        .section-upper {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section-lower {
+            flex: 1;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #0F172A;
+            border-radius: 12px;
+            padding: 10px;
+            position: relative;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-danger { background: var(--accent-color); color: white; }
+
+        .live-speech {
+            min-height: 50px;
+            background: #FEF2F2;
+            border: 1px dashed var(--accent-color);
+            border-radius: 8px;
+            padding: 10px;
+            color: #991B1B;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .guide-box {
+            background: #EFF6FF;
+            border-left: 4px solid var(--primary-color);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #1E3A8A;
+        }
+
+        .diff-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin: 2px;
+        }
+        .diff-correct { background: #DCFCE7; color: #166534; }
+        .diff-wrong { background: #FEE2E2; color: #991B1B; font-weight: bold; }
+
+        /* 테이블 및 기록 목록 */
+        .history-item {
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 0;
+        }
+
+        .history-item:last-child { border-bottom: none; }
+
+        /* 관리자 모드 */
+        .admin-stat-card {
+            background: #F1F5F9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-practice', this)">🎙️ 발음 교정</button>
+        <button class="tab-btn" onclick="switchTab('tab-history', this)">📜 연습 기록</button>
+        <button class="tab-btn" onclick="switchTab('tab-admin', this)">🔒 관리자</button>
+    </div>
+</header>
+
+<main>
+    <!-- 1. 발음 교정 탭 -->
+    <div id="tab-practice" class="tab-content active">
+        <!-- 화면 상부 2/3: 입력 및 교정 피드백 -->
+        <div class="section-upper">
+            <div class="card">
+                <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold;">학습자 이름</label>
+                <input type="text" id="student-name" placeholder="이름을 입력하세요 (예: Tanaka)" style="margin-bottom: 10px;">
+                
+                <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold;">연습할 한국어 문장</label>
+                <input type="text" id="target-sentence" value="안녕하세요. 저는 한국어를 공부합니다." placeholder="문장을 직접 입력하세요.">
+                
+                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                    <button id="record-btn" class="btn btn-primary" style="flex: 1;" onclick="toggleRecording()">🎤 발음 시작</button>
+                </div>
+            </div>
+
+            <!-- 실시간 인식 오발음 한글 표기 -->
+            <div class="card">
+                <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">실시간 인식된 발음</div>
+                <div id="live-speech-box" class="live-speech">마이크 버튼을 누르고 발음해보세요</div>
+            </div>
+
+            <!-- 발음 비교 및 교정 가이드 출력 -->
+            <div id="result-card" class="card" style="display: none;">
+                <div style="font-weight: bold; margin-bottom: 8px;">📊 발음 분석 결과</div>
+                <div id="diff-view" style="margin-bottom: 10px; line-height: 1.6;"></div>
+                <div id="correction-guide" class="guide-box"></div>
+            </div>
+        </div>
+
+        <!-- 화면 하부 1/3: 음성 파동 (Canvas) -->
+        <div class="section-lower">
+            <canvas id="waveform"></canvas>
+            <div style="color: #94A3B8; font-size: 0.75rem; position: absolute; bottom: 6px;">실시간 음성 파형 (Audio Waveform)</div>
+        </div>
+    </div>
+
+    <!-- 2. 연습 기록 탭 -->
+    <div id="tab-history" class="tab-content">
+        <div class="card">
+            <div style="font-weight: bold; margin-bottom: 12px;">📜 내 연습 기록 모아보기</div>
+            <div id="history-list">
+                <p style="color: var(--text-sub); font-size: 0.9rem;">아직 연습한 기록이 없습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 관리자 모드 탭 -->
+    <div id="tab-admin" class="tab-content">
+        <!-- 비밀번호 입력 영역 -->
+        <div id="admin-auth-box" class="card">
+            <div style="font-weight: bold; margin-bottom: 8px;">🔒 관리자 인증</div>
+            <input type="password" id="admin-pass" placeholder="비밀번호를 입력하세요" style="margin-bottom: 10px;">
+            <button class="btn btn-primary" style="width: 100%;" onclick="checkAdminPass()">확인</button>
+        </div>
+
+        <!-- 관리자 전용 대시보드 (인증 후 표시) -->
+        <div id="admin-dashboard" style="display: none;" class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="font-weight: bold; font-size: 1.1rem;">👨🏫 교사용 지도 관리자 모드</div>
+                <button class="btn" style="background: #CBD5E1; padding: 4px 8px; font-size: 0.8rem;" onclick="lockAdmin()">잠금</button>
+            </div>
+
+            <!-- 일본인 학생 자주 범하는 오류 패턴 통계 -->
+            <div class="admin-stat-card">
+                <div style="font-weight: bold; color: #1E3A8A; margin-bottom: 6px;">💡 일본인 학습자 주요 발음 오류 분석</div>
+                <ul style="font-size: 0.85rem; padding-left: 20px; color: #334155; line-height: 1.5;">
+                    <li><strong>'ㅓ/ㅗ' 구분:</strong> '어'를 '오'로 발음하는 경향</li>
+                    <li><strong>'ㅡ/ㅜ' 구분:</strong> '으'를 '우'로 발음하는 경향</li>
+                    <li><strong>받침(종성):</strong> 'ㄴ/ㅁ/ㅇ' 받침 뒤 모음 연음 오발음 및 'ㄹ' 받침 발음 미흡</li>
+                    <li><strong>평음/격음/경음:</strong> 'ㄱ/ㅋ/ㄲ', 'ㄷ/ㅌ/ㄸ' 구별 난항</li>
+                </ul>
+            </div>
+
+            <!-- 지도 요령 -->
+            <div class="guide-box" style="margin-bottom: 16px;">
+                <strong>📌 교사 지도 요령 (Instruction Guide)</strong><br>
+                - 'ㅓ' 발음 지도 시 입을 'ㅗ'보다 더 벌리고 혀를 내리도록 지도하세요.<br>
+                - 받침 발음 시 입술을 닫는 타이밍을 시각적으로 모션으로 보여주는 것이 효과적입니다.
+            </div>
+
+            <!-- 전체 학생 연습 기록 수합 테이블 -->
+            <div style="font-weight: bold; margin-bottom: 8px;">📋 전체 학생 연습 기록 수합</div>
+            <div id="admin-all-history" style="max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // Google Apps Script Web App URL (생성 후 여기에 붙여넣으세요)
+    const GAS_URL = ""; 
+
+    let recognition = null;
+    let isRecording = false;
+    let audioCtx, analyser, dataArray, canvas, canvasCtx, source, streamObj;
+    let animFrameId = null;
+
+    let historyData = JSON.parse(localStorage.getItem('korean_speech_history')) || [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initSpeechRecognition();
+        initCanvas();
+        renderHistory();
+    });
+
+    // 탭 전환 (event 객체 의존 제거 → 버튼 직접 전달)
+    function switchTab(tabId, btnEl) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        if (btnEl) btnEl.classList.add('active');
+    }
+
+    // Web Speech API 초기화
+    function initSpeechRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+                document.getElementById('live-speech-box').innerText = interimTranscript;
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech Error: ", event.error);
+            };
+        } else {
+            alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome을 이용해 주세요.');
+        }
+    }
+
+    // 마이크 및 음성 파동(Web Audio API) 처리
+    async function toggleRecording() {
+        const btn = document.getElementById('record-btn');
+        if (!isRecording) {
+            try {
+                streamObj = await navigator.mediaDevices.getUserMedia({ audio: true });
+                startAudioVisualizer(streamObj);
+                
+                recognition.start();
+                isRecording = true;
+                btn.innerText = "⏹️ 녹음 완료 및 분석";
+                btn.className = "btn btn-danger";
+                document.getElementById('live-speech-box').innerText = "듣고 있는 중...";
+                document.getElementById('result-card').style.display = "none";
+            } catch (err) {
+                alert("마이크 접근 권한이 필요합니다.");
+            }
+        } else {
+            recognition.stop();
+            stopAudioVisualizer();
+            isRecording = false;
+            btn.innerText = "🎤 발음 시작";
+            btn.className = "btn btn-primary";
+
+            setTimeout(analyzeSpeechResult, 500);
+        }
+    }
+
+    // Canvas 음성 파동 시각화
+    function initCanvas() {
+        canvas = document.getElementById('waveform');
+        canvasCtx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        // 초기 배경 채우기
+        canvasCtx.fillStyle = '#0F172A';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function startAudioVisualizer(stream) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+
+        drawWaveform();
+    }
+
+    function drawWaveform() {
+        if (!isRecording) return;
+        animFrameId = requestAnimationFrame(drawWaveform);
+
+        analyser.getByteTimeDomainData(dataArray);
+
+        canvasCtx.fillStyle = '#0F172A';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        canvasCtx.lineWidth = 2;
+        canvasCtx.strokeStyle = '#3B82F6';
+        canvasCtx.beginPath();
+
+        const sliceWidth = canvas.width * 1.0 / dataArray.length;
+        let x = 0;
+
+        for (let i = 0; i < dataArray.length; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = v * canvas.height / 2;
+
+            if (i === 0) canvasCtx.moveTo(x, y);
+            else canvasCtx.lineTo(x, y);
+
+            x += sliceWidth;
+        }
+
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.stroke();
+    }
+
+    function stopAudioVisualizer() {
+        if (animFrameId) {
+            cancelAnimationFrame(animFrameId);
+            animFrameId = null;
+        }
+        if (streamObj) streamObj.getTracks().forEach(track => track.stop());
+        if (audioCtx) audioCtx.close();
+        if (canvasCtx && canvas) {
+            canvasCtx.fillStyle = '#0F172A';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+
+    // 발음 분석 및 교정 가이드 생성
+    function analyzeSpeechResult() {
+        const target = document.getElementById('target-sentence').value.trim();
+        const spoken = document.getElementById('live-speech-box').innerText.trim();
+        const studentName = document.getElementById('student-name').value.trim() || '익명 학생';
+
+        if (!spoken || spoken === "듣고 있는 중...") return;
+
+        document.getElementById('result-card').style.display = "block";
+
+        // 문자열 비교 피드백 생성
+        let diffHtml = "<strong>비교: </strong>";
+        let guideText = "";
+
+        if (target === spoken) {
+            diffHtml += `<span class="diff-tag diff-correct">${spoken} (완벽합니다!)</span>`;
+            guideText = "🎉 명확하고 정확한 발음입니다! 참 잘하셨습니다.";
+        } else {
+            diffHtml += `<br>목표: ${target}<br>인식: <span class="diff-tag diff-wrong">${spoken}</span>`;
+            
+            // 일본인 전용 교정 가이드 룰
+            if (spoken.includes("오") && target.includes("어")) {
+                guideText += "💡 <strong>'ㅓ' 발음 교정:</strong> '오' 대신 입을 더 크게 벌려 '어' 소리를 내보세요.<br>";
+            }
+            if (spoken.includes("우") && target.includes("으")) {
+                guideText += "💡 <strong>'ㅡ' 발음 교정:</strong> 입술을 옆으로 입꼬리를 당기며 '으'라고 발음하세요.<br>";
+            }
+            if (!guideText) {
+                guideText = "💡 천천히 한 음절씩 정확하게 발음하는 연습을 해보세요.";
+            }
+        }
+
+        document.getElementById('diff-view').innerHTML = diffHtml;
+        document.getElementById('correction-guide').innerHTML = guideText;
+
+        // 히스토리 저장
+        const record = {
+            studentName,
+            target,
+            spoken,
+            date: new Date().toLocaleString('ko-KR')
+        };
+
+        historyData.unshift(record);
+        localStorage.setItem('korean_speech_history', JSON.stringify(historyData));
+        renderHistory();
+
+        // Google Apps Script 연동 전송 (URL이 있는 경우)
+        if (GAS_URL) {
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(record)
+            });
+        }
+    }
+
+    // 연습 기록 출력
+    function renderHistory() {
+        const container = document.getElementById('history-list');
+        if (historyData.length === 0) {
+            container.innerHTML = `<p style="color: var(--text-sub); font-size: 0.9rem;">아직 연습한 기록이 없습니다.</p>`;
+            return;
+        }
+
+        container.innerHTML = historyData.map(h => `
+            <div class="history-item">
+                <div style="font-size: 0.8rem; color: var(--text-sub);">${h.studentName} | ${h.date}</div>
+                <div style="font-weight: bold; font-size: 0.95rem;">목표: ${h.target}</div>
+                <div style="color: var(--accent-color); font-size: 0.9rem;">발음: ${h.spoken}</div>
+            </div>
+        `).join('');
+    }
+
+    // 관리자 인증
+    function checkAdminPass() {
+        const pass = document.getElementById('admin-pass').value;
+        if (pass === '0849') {
+            document.getElementById('admin-auth-box').style.display = 'none';
+            document.getElementById('admin-dashboard').style.display = 'block';
+            renderAdminAllHistory();
+        } else {
+            alert('비밀번호가 일치하지 않습니다.');
+        }
+    }
+
+    function lockAdmin() {
+        document.getElementById('admin-auth-box').style.display = 'block';
+        document.getElementById('admin-dashboard').style.display = 'none';
+        document.getElementById('admin-pass').value = '';
+    }
+
+    function renderAdminAllHistory() {
+        const container = document.getElementById('admin-all-history');
+        if (historyData.length === 0) {
+            container.innerHTML = `<p style="font-size: 0.85rem; color: var(--text-sub);">수합된 데이터가 없습니다.</p>`;
+            return;
+        }
+
+        container.innerHTML = historyData.map(h => `
+            <div class="history-item">
+                <div style="font-size: 0.8rem; color: var(--text-sub);"><strong>${h.studentName}</strong> (${h.date})</div>
+                <div style="font-size: 0.85rem;">원문: ${h.target}</div>
+                <div style="font-size: 0.85rem; color: #DC2626;">발음: ${h.spoken}</div>
+            </div>
+        `).join('');
+    }
+</script>
+</body>
+</html>
