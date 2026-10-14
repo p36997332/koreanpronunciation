@@ -305,7 +305,10 @@
             <div id="admin-dashboard" style="display: none;" class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <div style="font-weight: bold; font-size: 1.1rem;">👨‍🏫 교사용 지도 관리자 모드</div>
-                    <button class="btn" style="background: #CBD5E1; padding: 4px 10px; font-size: 0.8rem;" onclick="lockAdmin()">잠금</button>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn" style="background: #2563EB; color:white; padding: 4px 10px; font-size: 0.8rem;" onclick="loadSheetData()">🔄 시트 동기화</button>
+                        <button class="btn" style="background: #CBD5E1; padding: 4px 10px; font-size: 0.8rem;" onclick="lockAdmin()">잠금</button>
+                    </div>
                 </div>
 
                 <div class="admin-stat-card">
@@ -324,8 +327,10 @@
                     - 받침 발음 시 입술을 닫는 타이밍을 시각적으로 보여주는 것이 효과적입니다.
                 </div>
 
-                <div style="font-weight: bold; margin-bottom: 8px;">📋 전체 학생 연습 기록 및 음절 진단 수합</div>
-                <div id="admin-all-history" style="max-height: 400px; overflow-y: auto;"></div>
+                <div style="font-weight: bold; margin-bottom: 8px;">📋 구글 시트 전체 학생 기록 수합</div>
+                <div id="admin-all-history" style="max-height: 400px; overflow-y: auto;">
+                    <p style="font-size:0.85rem; color:var(--text-sub);">동기화 버튼을 눌러 시트 데이터를 불러오세요.</p>
+                </div>
             </div>
         </div>
     </main>
@@ -359,7 +364,8 @@
     </div>
 
     <script>
-        const GAS_URL = "";
+        // 발급하신 구글 앱스 스크립트 웹 앱 URL 적용 완료
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwW_SzYF88_snxi_0KGDX6ouLZmiOKEYeMFxOxFbUhWsg5BbzFrNHj54mIVgP2cbNR9/exec";
 
         let mediaRecorder = null;
         let audioChunks = [];
@@ -374,7 +380,6 @@
             initVoices();
         });
 
-        // 탭 전환 기능
         function switchTab(tabId, btnEl) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -404,7 +409,6 @@
             document.getElementById('guide-modal').style.display = show ? 'flex' : 'none';
         }
 
-        // 버튼 클릭 제어
         async function handleRecordClick() {
             if (!isRecording) {
                 await startRecording();
@@ -413,7 +417,6 @@
             }
         }
 
-        // 녹음 시작
         async function startRecording() {
             const btn = document.getElementById('record-btn');
             const speechBox = document.getElementById('live-speech-box');
@@ -442,10 +445,7 @@
                     document.getElementById('audio-container').innerHTML = `<audio controls src="${audioUrl}"></audio>`;
                     speechBox.innerText = '녹음 완료! 아래 플레이어로 내 목소리를 확인하세요.';
                     
-                    // 분석 실행
                     processAnalysis(activeTargetSentence);
-
-                    // 스트림 트랙 종료
                     streamObj.getTracks().forEach(track => track.stop());
                 };
 
@@ -467,7 +467,6 @@
             }
         }
 
-        // 녹음 중단
         function stopRecording() {
             const btn = document.getElementById('record-btn');
             isRecording = false;
@@ -480,7 +479,6 @@
             btn.className = 'btn btn-primary';
         }
 
-        // 분석 리포트 생성 및 음절 상태 HTML을 히스토리에 함께 저장
         function processAnalysis(targetSentence) {
             const studentName = document.getElementById('student-name').value.trim() || '익명 학생';
             document.getElementById('result-card').style.display = 'block';
@@ -490,6 +488,7 @@
 
             const chars = targetSentence.split('');
             let breakdownHtml = '';
+            let breakdownTextSummary = '';
             let redChars = [];
 
             chars.forEach((char, idx) => {
@@ -504,6 +503,7 @@
                             <span style="font-size: 0.6rem; color: #DC2626; font-weight: 600;">부족</span>
                         </div>
                     `;
+                    breakdownTextSummary += `[${char}:부족] `;
                 } else {
                     breakdownHtml += `
                         <div style="display: inline-flex; flex-direction: column; align-items: center; padding: 4px 8px; background: #DBEAFE; border: 1px solid #93C5FD; border-radius: 6px; margin-right: 4px; margin-bottom: 4px;">
@@ -511,6 +511,7 @@
                             <span style="font-size: 0.6rem; color: #2563EB; font-weight: 600;">우수</span>
                         </div>
                     `;
+                    breakdownTextSummary += `[${char}:우수] `;
                 }
             });
 
@@ -532,7 +533,8 @@
                 target: targetSentence,
                 score: `${score}%`,
                 date: new Date().toLocaleString('ko-KR'),
-                breakdownHtml: breakdownHtml // 음절별 우수/부족 분석 태그 저장!
+                breakdownHtml: breakdownHtml,
+                breakdownText: breakdownTextSummary
             };
 
             historyData.unshift(record);
@@ -545,7 +547,7 @@
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(record)
-                });
+                }).catch(err => console.error("Google Sheet Sync Error:", err));
             }
         }
 
@@ -566,7 +568,6 @@
             }
         }
 
-        // 연습 기록 렌더링 (음절별 분석 상태 표시)
         function renderHistory() {
             const c = document.getElementById('history-list');
             if (!c) return;
@@ -595,7 +596,7 @@
             if (passInput && passInput.value === '0849') {
                 document.getElementById('admin-auth-box').style.display = 'none';
                 document.getElementById('admin-dashboard').style.display = 'block';
-                renderAdminAllHistory();
+                loadSheetData();
             } else {
                 alert('비밀번호가 틀렸습니다.');
             }
@@ -608,27 +609,41 @@
             if (passInput) passInput.value = '';
         }
 
-        // 관리자 모드 전체 학생 기록 렌더링 (음절별 분석 상태 포함)
-        function renderAdminAllHistory() {
-            const c = document.getElementById('admin-all-history');
-            if (!c) return;
-            if (!historyData.length) {
-                c.innerHTML = `<p style="font-size:0.85rem;color:var(--text-sub);">수합된 데이터가 없습니다.</p>`;
+        async function loadSheetData() {
+            const container = document.getElementById('admin-all-history');
+            if (!GAS_URL) {
+                container.innerHTML = `<p style="font-size:0.85rem; color:#EF4444;">⚠️ GAS_URL이 설정되지 않았습니다.</p>`;
                 return;
             }
 
-            c.innerHTML = historyData.map(h => `
-                <div class="history-item">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <span style="font-size:0.8rem; color:var(--text-sub);">👤 <strong>${h.studentName}</strong> (${h.date})</span>
-                        <span style="color:var(--primary-color); font-size:0.85rem; font-weight:bold;">${h.score}</span>
+            container.innerHTML = `<p style="font-size:0.85rem; color:var(--text-sub);">🔄 구글 시트에서 데이터를 불러오는 중...</p>`;
+
+            try {
+                const response = await fetch(GAS_URL);
+                const data = await response.json();
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = `<p style="font-size:0.85rem; color:var(--text-sub);">구글 시트에 수합된 데이터가 없습니다.</p>`;
+                    return;
+                }
+
+                container.innerHTML = data.reverse().map(h => `
+                    <div class="history-item">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-size:0.8rem; color:var(--text-sub);">👤 <strong>${h.studentName}</strong> (${h.date})</span>
+                            <span style="color:var(--primary-color); font-size:0.85rem; font-weight:bold;">일치율: ${h.score}</span>
+                        </div>
+                        <div style="font-size:0.9rem; font-weight:bold; margin-bottom: 6px;">문장: "${h.target}"</div>
+                        <div style="font-size:0.8rem; color:#475569; background:#F8FAFC; padding:6px; border-radius:6px; border:1px solid #E2E8F0;">
+                            분석 결과: ${h.breakdownText || '데이터 없음'}
+                        </div>
                     </div>
-                    <div style="font-size:0.9rem; font-weight:bold; margin-bottom: 6px;">문장: "${h.target}"</div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                        ${h.breakdownHtml || ''}
-                    </div>
-                </div>
-            `).join('');
+                `).join('');
+
+            } catch (err) {
+                console.error("Sheet Load Error:", err);
+                container.innerHTML = `<p style="font-size:0.85rem; color:#EF4444;">❌ 시트 데이터를 불러오는 데 실패했습니다. (CORS 또는 URL 확인)</p>`;
+            }
         }
     </script>
 </body>
