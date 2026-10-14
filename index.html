@@ -31,7 +31,6 @@
             min-height: 100vh;
         }
 
-        /* 헤더 & 탭 */
         header {
             background: var(--card-bg);
             border-bottom: 1px solid var(--border-color);
@@ -69,7 +68,6 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        /* 메인 컨테이너 */
         main {
             flex: 1;
             max-width: 600px;
@@ -88,7 +86,6 @@
             gap: 16px;
         }
 
-        /* 카드 컴포넌트 */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -184,19 +181,22 @@
         .diff-correct { background: #DCFCE7; color: #166534; }
         .diff-wrong { background: #FEE2E2; color: #991B1B; font-weight: bold; }
 
-        /* 기록 목록 */
         .history-item {
             border-bottom: 1px solid var(--border-color);
             padding: 12px 0;
         }
         .history-item:last-child { border-bottom: none; }
 
-        /* 관리자 모드 */
         .admin-stat-card {
             background: #F1F5F9;
             padding: 14px;
             border-radius: 10px;
             margin-bottom: 12px;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -211,23 +211,24 @@
     </header>
 
     <main>
-        <!-- 1. 발음 교정 탭 -->
         <div id="tab-practice" class="tab-content active">
             <div class="section-upper">
                 <div class="card">
                     <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold; display: block; margin-bottom: 6px;">학습자 이름</label>
                     <input type="text" id="student-name" placeholder="이름을 입력하세요 (예: Tanaka)" style="margin-bottom: 12px;">
                     
-                    <button id="record-btn" class="btn btn-primary" style="width: 100%;" onclick="toggleRecording()">🎤 발음 시작</button>
+                    <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold; display: block; margin-bottom: 6px;">연습할 한국어 문장 입력</label>
+                    <input type="text" id="target-sentence" placeholder="학습할 문장을 입력하세요 (예: 안녕하세요)" style="margin-bottom: 12px;">
+
+                    <button id="record-btn" class="btn btn-primary" style="width: 100%;" onclick="toggleRecording()">🎤 녹음 시작</button>
                 </div>
 
-                <!-- 실시간 인식된 음성 표기 카드 -->
                 <div class="card">
-                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">음성 인식 결과 (실시간)</div>
-                    <div id="live-speech-box" class="live-speech">버튼을 누르고 연습할 문장을 자유롭게 말해보세요</div>
+                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">녹음된 오디오 및 재생</div>
+                    <div id="live-speech-box" class="live-speech">마이크 버튼을 누르고 문장을 말한 뒤 중단하세요</div>
+                    <div id="audio-container"></div>
                 </div>
 
-                <!-- 발음 분석 가이드 출력 -->
                 <div id="result-card" class="card" style="display: none;">
                     <div style="font-weight: bold; margin-bottom: 8px;">📊 발음 피드백 및 분석</div>
                     <div id="diff-view" style="margin-bottom: 10px; line-height: 1.6;"></div>
@@ -235,14 +236,12 @@
                 </div>
             </div>
 
-            <!-- 화면 하부: 음성 파동 (Canvas) -->
             <div class="section-lower">
                 <canvas id="waveform"></canvas>
                 <div style="color: #94A3B8; font-size: 0.75rem; position: absolute; bottom: 6px; right: 10px; pointer-events: none;">실시간 음성 파형</div>
             </div>
         </div>
 
-        <!-- 2. 연습 기록 탭 -->
         <div id="tab-history" class="tab-content">
             <div class="card">
                 <div style="font-weight: bold; margin-bottom: 12px;">📜 내 연습 기록 모아보기</div>
@@ -252,23 +251,19 @@
             </div>
         </div>
 
-        <!-- 3. 관리자 모드 탭 -->
         <div id="tab-admin" class="tab-content">
-            <!-- 비밀번호 입력 영역 -->
             <div id="admin-auth-box" class="card">
                 <div style="font-weight: bold; margin-bottom: 8px;">🔒 관리자 인증</div>
                 <input type="password" id="admin-pass" placeholder="비밀번호를 입력하세요" style="margin-bottom: 10px;">
                 <button class="btn btn-primary" style="width: 100%;" onclick="checkAdminPass()">확인</button>
             </div>
 
-            <!-- 관리자 전용 대시보드 (인증 후 표시) -->
             <div id="admin-dashboard" style="display: none;" class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <div style="font-weight: bold; font-size: 1.1rem;">👨‍🏫 교사용 지도 관리자 모드</div>
                     <button class="btn" style="background: #CBD5E1; padding: 4px 10px; font-size: 0.8rem;" onclick="lockAdmin()">잠금</button>
                 </div>
 
-                <!-- 일본인 학생 자주 범하는 오류 패턴 통계 -->
                 <div class="admin-stat-card">
                     <div style="font-weight: bold; color: #1E3A8A; margin-bottom: 6px;">💡 일본인 학습자 주요 발음 오류 분석</div>
                     <ul style="font-size: 0.85rem; padding-left: 20px; color: #334155; line-height: 1.5;">
@@ -279,14 +274,12 @@
                     </ul>
                 </div>
 
-                <!-- 지도 요령 -->
                 <div class="guide-box" style="margin-bottom: 16px;">
                     <strong>📌 교사 지도 요령 (Instruction Guide)</strong><br>
                     - 'ㅓ' 발음 지도 시 입을 'ㅗ'보다 더 벌리고 혀를 내리도록 지도하세요.<br>
                     - 받침 발음 시 입술을 닫는 타이밍을 시각적으로 보여주는 것이 효과적입니다.
                 </div>
 
-                <!-- 전체 학생 연습 기록 수합 테이블 -->
                 <div style="font-weight: bold; margin-bottom: 8px;">📋 전체 학생 연습 기록 수합</div>
                 <div id="admin-all-history" style="max-height: 300px; overflow-y: auto;"></div>
             </div>
@@ -296,17 +289,16 @@
     <script>
         const GAS_URL = "";
 
-        let recognition = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
         let isRecording = false;
         let audioCtx = null, analyser = null, dataArray = null;
         let canvasEl = null, canvasCtx = null, sourceNode = null, streamObj = null;
         let animFrameId = null;
-        let finalTranscript = '';
 
         let historyData = JSON.parse(localStorage.getItem('korean_speech_history')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            initSpeechRecognition();
             initCanvas();
             renderHistory();
         });
@@ -335,81 +327,65 @@
             canvasEl.height = 100;
         }
 
-        function initSpeechRecognition() {
-            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SR) return;
-
-            recognition = new SR();
-            recognition.lang = 'ko-KR';
-            recognition.interimResults = true;
-            recognition.continuous = true;
-
-            recognition.onresult = (event) => {
-                let interim = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interim += event.results[i][0].transcript;
-                    }
-                }
-                document.getElementById('live-speech-box').innerText = finalTranscript + interim;
-            };
-
-            recognition.onerror = (e) => {
-                console.error('Speech error:', e.error);
-            };
-        }
-
-        function toggleRecording() {
+        async function toggleRecording() {
             const btn = document.getElementById('record-btn');
+            const targetSentence = document.getElementById('target-sentence').value.trim();
+
+            if (!targetSentence) {
+                alert('먼저 연습할 한국어 문장을 입력해 주세요.');
+                document.getElementById('target-sentence').focus();
+                return;
+            }
 
             if (!isRecording) {
-                // 1. 녹음 상태 전환 및 초기화
-                isRecording = true;
-                finalTranscript = '';
-                btn.innerText = '⏹️ 중단 및 분석';
-                btn.className = 'btn btn-danger';
-                document.getElementById('live-speech-box').innerText = '듣고 있는 중...';
-                document.getElementById('result-card').style.display = 'none';
+                try {
+                    audioChunks = [];
+                    streamObj = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
-                // 2. 음성 인식 즉시 시작
-                if (recognition) {
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        console.log('Recognition restart:', e);
-                    }
+                    mediaRecorder = new MediaRecorder(streamObj);
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        
+                        const audioContainer = document.getElementById('audio-container');
+                        audioContainer.innerHTML = `<audio controls src="${audioUrl}"></audio>`;
+                        
+                        document.getElementById('live-speech-box').innerText = '녹음 완료! 아래 재생 버튼으로 확인하세요.';
+                        analyzeRecordedSpeech(targetSentence);
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.innerText = '⏹️ 녹음 중단 및 분석';
+                    btn.className = 'btn btn-danger';
+                    document.getElementById('live-speech-box').innerText = '🔴 녹음 중입니다... 말을 마치면 중단 버튼을 누르세요.';
+                    document.getElementById('result-card').style.display = 'none';
+                    document.getElementById('audio-container').innerHTML = '';
+
+                    resizeCanvas();
+                    startAudioVisualizer(streamObj);
+
+                } catch (err) {
+                    console.error('Mic access error:', err);
+                    alert('마이크 접근 권한이 필요합니다. 설정에서 허용해 주세요.');
                 }
-
-                // 3. 파형 시각화용 마이크 스트림 연결
-                navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-                    .then(stream => {
-                        streamObj = stream;
-                        resizeCanvas();
-                        startAudioVisualizer(stream);
-                    })
-                    .catch(err => {
-                        console.error('Mic permission error:', err);
-                    });
-
             } else {
-                stopRecordingAndAnalyze();
+                isRecording = false;
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+                stopAudioVisualizer();
+
+                btn.innerText = '🎤 녹음 시작';
+                btn.className = 'btn btn-primary';
             }
-        }
-
-        function stopRecordingAndAnalyze() {
-            isRecording = false;
-            const btn = document.getElementById('record-btn');
-            btn.innerText = '🎤 발음 시작';
-            btn.className = 'btn btn-primary';
-
-            if (recognition) {
-                try { recognition.stop(); } catch(e) {}
-            }
-            stopAudioVisualizer();
-
-            setTimeout(analyzeSpeechResult, 500);
         }
 
         function startAudioVisualizer(stream) {
@@ -475,39 +451,22 @@
             }
         }
 
-        function analyzeSpeechResult() {
-            const liveBox = document.getElementById('live-speech-box');
-            let spoken = liveBox.innerText.trim();
+        function analyzeRecordedSpeech(targetSentence) {
             const studentName = document.getElementById('student-name').value.trim() || '익명 학생';
-
-            const BLOCKED = ['듣고 있는 중...', '버튼을 누르고 연습할 문장을 자유롭게 말해보세요'];
-            if (!spoken || BLOCKED.includes(spoken)) {
-                liveBox.innerText = '⚠️ 음성이 인식되지 않았습니다. 다시 시도해 주세요.';
-                return;
-            }
-
             document.getElementById('result-card').style.display = 'block';
 
-            let diffHtml = `<strong>인식된 발음: </strong> <span class="diff-tag diff-correct">${spoken}</span>`;
-            let guideText = '';
+            let diffHtml = `<strong>목표 문장: </strong> <span class="diff-tag diff-correct">${targetSentence}</span><br>`;
+            diffHtml += `<span>오디오 녹음이 안전하게 완료되었습니다. 위 플레이어로 발음을 직접 들어보세요!</span>`;
 
-            if (spoken.includes('오')) {
-                guideText += "💡 <strong>'ㅓ/ㅗ' 발음 팁:</strong> '어'를 의도하셨다면 입을 'ㅗ'보다 더 크게 벌리고 혀를 내려 발음해 보세요.<br>";
-            }
-            if (spoken.includes('우')) {
-                guideText += "💡 <strong>'ㅡ/ㅜ' 발음 팁:</strong> '으'를 의도하셨다면 입술을 옆으로 당기며 발음해 보세요.<br>";
-            }
-            if (!guideText) {
-                guideText = "🎉 선명하게 잘 인식되었습니다! 정확하고 멋진 발음입니다.";
-            }
+            let guideText = "💡 <strong>교정 가이드:</strong> 녹음된 음성 파일을 재생하여 본인의 발음 억양과 목표 문장을 비교해 보세요.";
 
             document.getElementById('diff-view').innerHTML = diffHtml;
             document.getElementById('correction-guide').innerHTML = guideText;
 
             const record = {
                 studentName,
-                target: spoken,
-                spoken,
+                target: targetSentence,
+                spoken: '[오디오 녹음 파일]',
                 date: new Date().toLocaleString('ko-KR')
             };
 
@@ -535,7 +494,8 @@
             c.innerHTML = historyData.map(h => `
                 <div class="history-item">
                     <div style="font-size:0.8rem;color:var(--text-sub);">${h.studentName} | ${h.date}</div>
-                    <div style="color:var(--accent-color);font-weight:bold;font-size:0.95rem;">발음 문장: ${h.spoken}</div>
+                    <div style="font-weight:bold;font-size:0.95rem;">목표: ${h.target}</div>
+                    <div style="color:var(--primary-color);font-size:0.85rem;">상태: ${h.spoken}</div>
                 </div>
             `).join('');
         }
@@ -566,7 +526,7 @@
             c.innerHTML = historyData.map(h => `
                 <div class="history-item">
                     <div style="font-size:0.8rem;color:var(--text-sub);"><strong>${h.studentName}</strong> (${h.date})</div>
-                    <div style="font-size:0.85rem;color:#DC2626;">실제 발음: ${h.spoken}</div>
+                    <div style="font-size:0.85rem;">목표: ${h.target}</div>
                 </div>
             `).join('');
         }
