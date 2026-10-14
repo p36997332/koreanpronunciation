@@ -156,10 +156,11 @@
         }
 
         .live-speech {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             color: var(--primary-color);
             min-height: 30px;
+            word-break: keep-all;
         }
 
         .comparison-table {
@@ -263,7 +264,7 @@
                     <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold; display: block; margin-bottom: 6px;">학습자 이름</label>
                     <input type="text" id="student-name" placeholder="이름을 입력하세요 (예: Tanaka)" style="margin-bottom: 12px;">
                     
-                    <button id="record-btn" class="btn btn-primary" style="width: 100%;" onclick="toggleRecording()">🎤 자유 발음 시작</button>
+                    <button id="record-btn" class="btn btn-primary" style="width: 100%;" onclick="handleRecordClick()">🎤 자유 발음 시작</button>
                 </div>
 
                 <div class="card">
@@ -369,4 +370,214 @@
                 </div>
             </div>
 
-            <button onclick="toggleGuide(false)" style="width: 100%; margin-top: 16px; padding: 10px; background: #3B82F6; color: white; font-weight: 600; border-radius: 10px; border:
+            <button onclick="toggleGuide(false)" style="width: 100%; margin-top: 16px; padding: 10px; background: #3B82F6; color: white; font-weight: 600; border-radius: 10px; border: none; cursor: pointer; font-size: 0.9rem;">
+                확인하였습니다
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = "";
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let audioCtx = null, analyser = null, dataArray = null;
+        let canvasEl = null, canvasCtx = null, sourceNode = null, streamObj = null;
+        let animFrameId = null;
+        let koreanVoices = [];
+        let lastSampleSentence = "안녕하세요";
+
+        let historyData = JSON.parse(localStorage.getItem('korean_speech_history')) || [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCanvas();
+            renderHistory();
+            initVoices();
+        });
+
+        function initVoices() {
+            if ('speechSynthesis' in window) {
+                const loadVoices = () => {
+                    koreanVoices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('ko') || v.lang.includes('KR'));
+                };
+                loadVoices();
+                if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                    window.speechSynthesis.onvoiceschanged = loadVoices;
+                }
+            }
+        }
+
+        function switchTab(tabId, btnEl) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(tabId).classList.add('active');
+            if (btnEl) btnEl.classList.add('active');
+        }
+
+        function toggleGuide(show) {
+            document.getElementById('guide-modal').style.display = show ? 'flex' : 'none';
+        }
+
+        function initCanvas() {
+            canvasEl = document.getElementById('waveform');
+            if (!canvasEl) return;
+            canvasCtx = canvasEl.getContext('2d');
+            resizeCanvas();
+            canvasCtx.fillStyle = '#0F172A';
+            canvasCtx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+        }
+
+        function resizeCanvas() {
+            if (!canvasEl) return;
+            const parent = canvasEl.parentElement;
+            canvasEl.width = Math.max(parent.clientWidth - 20, 200);
+            canvasEl.height = 100;
+        }
+
+        // 버튼 클릭 제어 함수
+        async function handleRecordClick() {
+            if (!isRecording) {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        // 녹음 시작
+        async function startRecording() {
+            const btn = document.getElementById('record-btn');
+            const speechBox = document.getElementById('live-speech-box');
+
+            // 브라우저 마이크 지원 여부 검사
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("이 브라우저에서는 마이크 녹음을 지원하지 않거나 보안 연결(HTTPS) 환경이 아닙니다.");
+                speechBox.innerText = "❌ 마이크를 지원하지 않거나 보안 접속(HTTPS)이 필요합니다.";
+                return;
+            }
+
+            try {
+                audioChunks = [];
+                streamObj = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+                mediaRecorder = new MediaRecorder(streamObj);
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    document.getElementById('audio-container').innerHTML = `<audio controls src="${audioUrl}"></audio>`;
+                    speechBox.innerText = '녹음 완료! 아래 플레이어로 내 목소리를 확인하세요.';
+                    processAnalysis(lastSampleSentence);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+
+                btn.innerText = '⏹️ 중단 및 진단';
+                btn.className = 'btn btn-danger';
+                speechBox.innerText = '🔴 녹음 중... 발음한 뒤 중단 버튼을 누르세요.';
+                document.getElementById('result-card').style.display = 'none';
+                document.getElementById('audio-container').innerHTML = '';
+
+                resizeCanvas();
+                startAudioVisualizer(streamObj);
+
+            } catch (err) {
+                console.error('Mic Access Error:', err);
+                isRecording = false;
+                btn.innerText = '🎤 자유 발음 시작';
+                btn.className = 'btn btn-primary';
+
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    alert('마이크 접근 권한이 거부되었습니다. 브라우저 주소창 왼쪽의 마이크 허용 설정을 확인하세요.');
+                    speechBox.innerText = '❌ 마이크 권한이 거부되었습니다.';
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    alert('연결된 마이크 장치를 찾을 수 없습니다.');
+                    speechBox.innerText = '❌ 연결된 마이크 장치가 없습니다.';
+                } else {
+                    alert('마이크를 켜는 중 오류가 발생했습니다: ' + err.message);
+                    speechBox.innerText = '❌ 마이크 오류: ' + err.message;
+                }
+            }
+        }
+
+        // 녹음 중단
+        function stopRecording() {
+            const btn = document.getElementById('record-btn');
+            isRecording = false;
+
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                try {
+                    mediaRecorder.stop();
+                } catch(e) {
+                    console.error('Stop Recorder Error:', e);
+                }
+            }
+            stopAudioVisualizer();
+
+            btn.innerText = '🎤 자유 발음 시작';
+            btn.className = 'btn btn-primary';
+        }
+
+        function startAudioVisualizer(stream) {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                sourceNode = audioCtx.createMediaStreamSource(stream);
+                sourceNode.connect(analyser);
+
+                analyser.fftSize = 2048;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                drawWaveform();
+            } catch (e) {
+                console.error('Audio Visualizer Error:', e);
+            }
+        }
+
+        function drawWaveform() {
+            if (!isRecording) return;
+            animFrameId = requestAnimationFrame(drawWaveform);
+
+            analyser.getByteTimeDomainData(dataArray);
+
+            canvasCtx.fillStyle = '#0F172A';
+            canvasCtx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeStyle = '#3B82F6';
+            canvasCtx.beginPath();
+
+            const sliceWidth = canvasEl.width / dataArray.length;
+            let x = 0;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * (canvasEl.height / 2);
+
+                if (i === 0) {
+                    canvasCtx.moveTo(x, y);
+                } else {
+                    canvasCtx.lineTo(x, y);
+                }
+                x += sliceWidth;
+            }
+
+            canvasCtx.lineTo(canvasEl.width, canvasEl.height / 2);
+            canvasCtx.stroke();
+        }
+
+        function stopAudioVisualizer() {
+            if (animFrameId) {
+                cancelAnimationFrame(animFrameId);
+                animFrameId = null;
+            }
+            if (
