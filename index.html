@@ -146,6 +146,52 @@
             word-break: keep-all;
         }
 
+        .roman-preview {
+            display: none;
+            margin: -6px 0 12px 0;
+            padding: 8px 12px;
+            background: #EFF6FF;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1E3A8A;
+            word-break: keep-all;
+        }
+
+        .target-check {
+            display: none;
+            margin: -6px 0 12px 0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            word-break: keep-all;
+        }
+        .target-check.ok   { background: #DCFCE7; color: #166534; }
+        .target-check.warn { background: #FEF9C3; color: #854D0E; }
+        .target-check.bad  { background: #FEE2E2; color: #991B1B; }
+        .suggest-btn {
+            margin: 6px 6px 0 0;
+            padding: 4px 10px;
+            border: 1px solid currentColor;
+            border-radius: 6px;
+            background: #FFFFFF;
+            color: inherit;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .badge-unverified {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: #FEF9C3;
+            color: #854D0E;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
         .comparison-table {
             width: 100%;
             border-collapse: collapse;
@@ -227,7 +273,7 @@
                 <span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981; display: inline-block;"></span>
                 <span>시스템 정상 작동</span>
             </div>
-            
+
             <button onclick="toggleGuide(true)" style="background: #F1F5F9; border: 1px solid #E2E8F0; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; color: #334155; cursor: pointer;">
                 ℹ️ 평가 유의사항 및 기준
             </button>
@@ -247,11 +293,13 @@
                 <div class="card">
                     <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold; display: block; margin-bottom: 6px;">학습자 이름</label>
                     <input type="text" id="student-name" placeholder="이름을 입력하세요 (예: Tanaka)" style="margin-bottom: 12px;">
-                    
+
                     <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold; display: block; margin-bottom: 6px;">
-                        연습할 목표 문장 <span style="font-size: 0.75rem; color: var(--primary-color); font-weight: normal;">(영어/로마자로 치면 자동 한글 변환됨!)</span>
+                        연습할 목표 문장 <span style="font-size: 0.75rem; color: var(--primary-color); font-weight: normal;">(영어/로마자로 치고 스페이스바를 누르면 한글로 변환돼요!)</span>
                     </label>
-                    <input type="text" id="target-sentence" placeholder="예: seonsaengnim annyeonghaseyo" value="안녕하세요" style="margin-bottom: 12px;">
+                    <input type="text" id="target-sentence" placeholder="예: seonsaengnim annyeonghaseyo" value="안녕하세요" style="margin-bottom: 12px;" autocomplete="off" autocapitalize="off" spellcheck="false">
+                    <div id="roman-preview" class="roman-preview"></div>
+                    <div id="target-check" class="target-check"></div>
 
                     <button id="record-btn" class="btn btn-primary" style="width: 100%;" onclick="handleRecordClick()">🎤 발음 연습 시작</button>
                 </div>
@@ -267,7 +315,7 @@
                         <div style="font-weight: bold;">📊 발음 정밀 분석 리포트</div>
                         <div id="res-score" style="font-weight: bold; font-size: 0.9rem; color: var(--primary-color);">정확도: 계산 중...</div>
                     </div>
-                    
+
                     <table class="comparison-table">
                         <tr>
                             <th>🔍 음절별 분석 상태<br><span style="font-size:0.7rem; color:var(--text-sub);">🟦 우수 ｜ 🟥 부족</span></th>
@@ -344,7 +392,7 @@
     <div id="guide-modal" class="modal-backdrop" style="display: none;">
         <div class="modal-box">
             <button onclick="toggleGuide(false)" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 18px; cursor: pointer; color: #94A3B8;">✕</button>
-            
+
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                 <span style="font-size: 20px;">📖</span>
                 <h3 style="font-weight: bold; color: #1E293B; font-size: 1rem;">평가 규정 및 채점 기준 안내</h3>
@@ -353,7 +401,7 @@
             <div style="font-size: 0.85rem; color: #475569; display: flex; flex-direction: column; gap: 10px; line-height: 1.5;">
                 <div style="background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
                     <strong style="color: #1E293B; display: block; margin-bottom: 2px;">1. 실전 녹음 및 진단</strong>
-                    목표 문장을 입력(영어로 쳐도 자동 한글 변환됨)하고 마이크 버튼을 눌러 발음한 뒤 중단 버튼을 누르면 맞춤형 분석 리포트가 생성됩니다.
+                    목표 문장을 입력(영어로 치고 스페이스바를 누르면 자동 한글 변환)하고 마이크 버튼을 눌러 발음한 뒤 중단 버튼을 누르면 맞춤형 분석 리포트가 생성됩니다.
                 </div>
 
                 <div style="background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
@@ -381,58 +429,402 @@
         document.addEventListener('DOMContentLoaded', () => {
             renderHistory();
             initVoices();
-            initRomanToHangul(); // 영타-한글 자동 변환 엔진 장착
+            initRomanToHangul();
         });
 
+        // ====================================================
+        // 로마자(영어) → 한글 변환기 (국어의 로마자 표기법 기준)
+        // ====================================================
+
+        // 한글 자모 인덱스 표 (유니코드 한글 음절 조합용)
+        const CHO_JAMO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+        // 초성: 로마자 → 초성 인덱스
+        const ONSET_IDX = {
+            g:0, kk:1, n:2, d:3, tt:4, r:5, l:5, m:6, b:7, pp:8, s:9, ss:10,
+            j:12, jj:13, ch:14, k:15, t:16, p:17, h:18,
+            f:17, z:12, c:14, v:7, q:15
+        };
+
+        // 중성: 로마자 → 중성 인덱스
+        const VOWEL_IDX = {
+            a:0, ae:1, ya:2, yae:3, eo:4, e:5, yeo:6, ye:7, o:8, wa:9, wae:10, oe:11,
+            yo:12, u:13, wo:14, we:15, wi:16, yu:17, eu:18, ui:19, i:20
+        };
+
+        // 종성: 로마자 → 종성 인덱스
+        const CODA_IDX = {
+            g:1, k:1, kk:2, n:4, d:7, t:7, l:8, r:8, m:16, b:17, p:17,
+            s:19, ss:20, ng:21, j:22, ch:23, h:27
+        };
+
+        // 겹받침 (ㄺ, ㄻ 등)
+        const COMPOUND_CODA = {
+            gs:3, nj:5, nh:6, lg:9, lm:10, lb:11, ls:12, lt:13, lp:14, lh:15, bs:18
+        };
+
+        // 모음 우선, 그다음 자음 (긴 것부터 매칭)
+        const TOKEN_RE = /^(?:(yeo|yae|wae|eo|eu|ae|ya|ye|yo|yu|wa|wo|we|wi|oe|ui|a|e|i|o|u)|(kk|tt|pp|ss|jj|ch|ng|[bcdfghjklmnpqrstvz]))/;
+
+        // 발음 규칙상 로마자만으로 정확히 구분하기 어려운 흔한 단어는 사전으로 보정
+        const WORD_MAP = {
+            "annyeong": "안녕",
+            "annyeonghaseyo": "안녕하세요",
+            "annyeonghi": "안녕히",
+            "seonsaengnim": "선생님",
+            "gamsahamnida": "감사합니다",
+            "gomapseumnida": "고맙습니다",
+            "jeyukbokkeum": "제육볶음",
+            "bangapseumnida": "반갑습니다",
+            "hangugo": "한국어",
+            "hangugeo": "한국어",
+            "hangukeo": "한국어",
+            "hangul": "한글",
+            "hangukmal": "한국말",
+            "palum": "발음",
+            "bareum": "발음",
+            "balum": "발음",
+            "mianhamnida": "미안합니다",
+            "joesonghamnida": "죄송합니다",
+            "saranghaeyo": "사랑해요",
+            "annyeonghigaseyo": "안녕히가세요",
+            "annyeonghigyeseyo": "안녕히계세요"
+        };
+
+        function loneJamo(unit) {
+            if (unit === 'ng') return 'ㅇ';
+            return ONSET_IDX[unit] !== undefined ? CHO_JAMO[ONSET_IDX[unit]] : unit;
+        }
+
+        // 앞 음절에 받침 붙이기 (붙일 수 없는 자음은 낱자 자모로 남김)
+        function attachCoda(out, units) {
+            if (!units.length) return;
+            const prev = out[out.length - 1];
+
+            if (!prev || prev.raw !== undefined || prev.jong !== 0) {
+                units.forEach(u => out.push({ raw: loneJamo(u) }));
+                return;
+            }
+
+            let used = 1;
+            if (units.length >= 2 && COMPOUND_CODA[units[0] + units[1]] !== undefined) {
+                prev.jong = COMPOUND_CODA[units[0] + units[1]];
+                used = 2;
+            } else if (CODA_IDX[units[0]] !== undefined) {
+                prev.jong = CODA_IDX[units[0]];
+            } else {
+                used = 0;
+            }
+
+            for (let k = used; k < units.length; k++) {
+                out.push({ raw: loneJamo(units[k]) });
+            }
+        }
+
+        function composeSyllable(s) {
+            if (s.raw !== undefined) return s.raw;
+            return String.fromCharCode(0xAC00 + (s.cho * 21 + s.jung) * 28 + s.jong);
+        }
+
+        // 하이픈/아포스트로피가 없는 한 덩어리 로마자 → 한글
+        function romanPartToHangul(part) {
+            const s = part.toLowerCase();
+            const tokens = [];
+            let pos = 0;
+
+            while (pos < s.length) {
+                const m = s.slice(pos).match(TOKEN_RE);
+                if (m) {
+                    if (m[1]) tokens.push({ t: 'V', v: m[1] });
+                    else tokens.push({ t: 'C', v: m[2] });
+                    pos += m[0].length;
+                } else {
+                    tokens.push({ t: 'X', v: s[pos] });
+                    pos++;
+                }
+            }
+
+            const out = [];
+            let i = 0;
+
+            while (i < tokens.length) {
+                const tk = tokens[i];
+
+                if (tk.t === 'X') {
+                    out.push({ raw: tk.v });
+                    i++;
+                    continue;
+                }
+
+                if (tk.t === 'V') {
+                    // 앞에 자음이 없는 모음 → 초성 'ㅇ'
+                    out.push({ cho: 11, jung: VOWEL_IDX[tk.v], jong: 0 });
+                    i++;
+                    continue;
+                }
+
+                // 자음 덩어리(cluster) 수집
+                const units = [];
+                let j = i;
+                while (j < tokens.length && tokens[j].t === 'C') {
+                    units.push(tokens[j].v);
+                    j++;
+                }
+
+                const hasVowel = j < tokens.length && tokens[j].t === 'V';
+
+                if (hasVowel) {
+                    // 모음 앞의 'ng'는 받침 ㄴ + 초성 ㄱ 으로 처리 (예: bangap → 반갑)
+                    if (units[units.length - 1] === 'ng') {
+                        units.splice(units.length - 1, 1, 'n', 'g');
+                    }
+                    const onset = units.pop(); // 마지막 자음 = 다음 음절의 초성
+                    attachCoda(out, units);    // 나머지 = 앞 음절의 받침
+                    out.push({ cho: ONSET_IDX[onset] !== undefined ? ONSET_IDX[onset] : 11, jung: VOWEL_IDX[tokens[j].v], jong: 0 });
+                    i = j + 1;
+                } else {
+                    // 단어 끝/기타 문자 앞: 전부 받침
+                    attachCoda(out, units);
+                    i = j;
+                }
+            }
+
+            return out.map(composeSyllable).join('');
+        }
+
+        function romanWordToHangul(word) {
+            const key = word.toLowerCase().replace(/[-']/g, '');
+            if (WORD_MAP[key]) return WORD_MAP[key];
+            return word.split(/[-']/).map(romanPartToHangul).join('');
+        }
+
+        // 문자열 안의 영어 단어만 골라서 한글로 변환 (한글/공백/숫자/기호는 그대로 유지)
+        function convertRomanToHangul(str) {
+            return str.replace(/[A-Za-z]+(?:[-'][A-Za-z]+)*/g, romanWordToHangul);
+        }
+
+        // ====================================================
+        // 표준 표기 검증
+        // 로마자를 소리 나는 대로 바꾼 결과(예: bangapsumnida → 반갑숨니다)가
+        // 그대로 '표준 정답'이 되지 않도록, 표준 표기 목록과 대조한다.
+        // ====================================================
+
+        // 선생님이 관리하는 표준 표기 목록입니다. 새 단어/문장은 여기에 추가하세요.
+        const STANDARD_ENTRIES = [
+            "안녕하세요", "안녕", "안녕히 가세요", "안녕히 계세요", "안녕히",
+            "반갑습니다", "만나서 반갑습니다", "처음 뵙겠습니다", "잘 부탁드립니다",
+            "감사합니다", "고맙습니다", "죄송합니다", "미안합니다", "괜찮아요",
+            "선생님", "학생", "학교", "친구", "한국", "한국어", "한국말", "한글", "발음",
+            "사랑해요", "맛있게 드세요", "잘 먹겠습니다", "잘 먹었습니다",
+            "제육볶음", "김치", "김치찌개", "비빔밥", "불고기", "삼겹살", "떡볶이",
+            "천천히 말씀해 주세요", "다시 한번 말씀해 주세요", "이거 얼마예요", "화장실이 어디예요",
+            "네", "아니요", "물", "밥"
+        ];
+
+        const JUNG_JAMO = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+        const JONG_JAMO = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+        // 한글 음절을 자모로 분해
+        function toJamo(str) {
+            let out = '';
+            for (const ch of str) {
+                const code = ch.charCodeAt(0) - 0xAC00;
+                if (code >= 0 && code <= 11171) {
+                    out += CHO_JAMO[Math.floor(code / 588)]
+                         + JUNG_JAMO[Math.floor((code % 588) / 28)]
+                         + JONG_JAMO[code % 28];
+                } else {
+                    out += ch;
+                }
+            }
+            return out;
+        }
+
+        // 자모 단위 편집 거리
+        function jamoDistance(a, b) {
+            const x = [...toJamo(a)], y = [...toJamo(b)];
+            const dp = Array.from({ length: x.length + 1 }, (_, i) => [i]);
+            for (let j = 1; j <= y.length; j++) dp[0][j] = j;
+            for (let i = 1; i <= x.length; i++) {
+                for (let j = 1; j <= y.length; j++) {
+                    dp[i][j] = Math.min(
+                        dp[i - 1][j] + 1,
+                        dp[i][j - 1] + 1,
+                        dp[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1)
+                    );
+                }
+            }
+            return dp[x.length][y.length];
+        }
+
+        const normalizeKo = (s) => s.replace(/\s+/g, '');
+        const STANDARD_NORMALIZED = [...new Set(STANDARD_ENTRIES.map(normalizeKo))];
+
+        // 문장이 표준 표기 항목들의 이어붙임으로 이루어져 있는지 확인 (예: "선생님 안녕하세요")
+        function isStandardSequence(text) {
+            const s = normalizeKo(text);
+            if (!s) return false;
+            const dp = new Array(s.length + 1).fill(false);
+            dp[0] = true;
+            for (let i = 1; i <= s.length; i++) {
+                for (const e of STANDARD_NORMALIZED) {
+                    if (e.length <= i && dp[i - e.length] && s.slice(i - e.length, i) === e) {
+                        dp[i] = true;
+                        break;
+                    }
+                }
+            }
+            return dp[s.length];
+        }
+
+        // 표준 표기와 비슷하지만 다른 경우, 가장 가까운 표준 표기를 추천
+        function nearestEntry(token) {
+            const t = normalizeKo(token);
+            if (!t) return null;
+            let best = null, bestD = Infinity;
+            for (const e of STANDARD_ENTRIES) {
+                const d = jamoDistance(t, normalizeKo(e));
+                if (d < bestD) { bestD = d; best = e; }
+            }
+            const limit = Math.max(2, Math.floor(toJamo(t).length * 0.3));
+            return (best && bestD > 0 && bestD <= limit) ? best : null;
+        }
+
+        function evaluateTarget(text) {
+            const sentence = (text || '').trim();
+            if (!sentence) return { verified: false, suggestions: [] };
+            if (isStandardSequence(sentence)) return { verified: true, suggestions: [] };
+
+            const suggestions = [];
+            const whole = nearestEntry(sentence);
+            if (whole) suggestions.push(whole);
+
+            const tokens = sentence.split(/\s+/);
+            if (tokens.length > 1) {
+                const fixed = tokens.map(t => isStandardSequence(t) ? t : nearestEntry(t));
+                if (fixed.every(Boolean)) {
+                    const joined = fixed.join(' ');
+                    if (!suggestions.includes(joined)) suggestions.push(joined);
+                }
+            }
+            return { verified: false, suggestions };
+        }
+
+        // 마지막으로 '로마자 → 한글' 자동 변환된 결과 (사용자가 직접 입력한 한글과 구분하기 위함)
+        let lastRomanSource = '';
+        let lastRomanResult = '';
+        function isFromRoman(sentence) {
+            return !!lastRomanResult && (sentence || '').trim() === lastRomanResult;
+        }
+
+        const escapeHtml = (s) => s.replace(/[&<>"']/g, c => (
+            { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+        ));
+
+        function refreshTargetCheck() {
+            const inputEl = document.getElementById('target-sentence');
+            const box = document.getElementById('target-check');
+            if (!inputEl || !box) return;
+
+            const val = inputEl.value.trim();
+            if (!val || /[A-Za-z]/.test(val)) {
+                box.style.display = 'none';
+                box.innerHTML = '';
+                return;
+            }
+
+            const info = evaluateTarget(val);
+            const suggestHtml = info.suggestions.map(s =>
+                `<button type="button" class="suggest-btn" data-suggest="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+            ).join('');
+
+            if (info.verified) {
+                box.className = 'target-check ok';
+                box.innerHTML = '✅ 표준 표기로 확인됐어요.';
+            } else if (isFromRoman(val)) {
+                box.className = 'target-check bad';
+                box.innerHTML = `❌ 영어로 입력한 소리를 그대로 한글로 바꾼 결과(<strong>${escapeHtml(val)}</strong>)이고, 표준 표기로 확인되지 않았어요. 이 상태로는 연습을 시작할 수 없어요.<br>`
+                    + (suggestHtml
+                        ? `혹시 이 말인가요?<br>${suggestHtml}`
+                        : '한글로 직접 입력하거나, 선생님께 표준 표기를 확인하세요.');
+            } else {
+                box.className = 'target-check warn';
+                box.innerHTML = '⚠️ 표준 표기 목록에 없는 문장이에요. 철자를 확인하세요. 이대로 연습하면 "미검증" 기록으로 저장돼요.'
+                    + (suggestHtml ? `<br>혹시 이 말인가요?<br>${suggestHtml}` : '');
+            }
+            box.style.display = 'block';
+        }
+
         // ----------------------------------------------------
-        // 💡 로마자(영어)를 한글 자모 조합으로 자동 변환해 주는 로직
+        // 입력창 연동: 타이핑 중엔 미리보기, 스페이스/Enter/포커스 해제 시 확정 변환
         // ----------------------------------------------------
+        function updateRomanInput(commit) {
+            const inputEl = document.getElementById('target-sentence');
+            const previewEl = document.getElementById('roman-preview');
+            if (!inputEl || !previewEl) return;
+
+            const val = inputEl.value;
+
+            if (!/[A-Za-z]/.test(val)) {
+                previewEl.style.display = 'none';
+                return;
+            }
+
+            const converted = convertRomanToHangul(val);
+
+            if (commit) {
+                inputEl.value = converted;
+                lastRomanSource = val.trim();
+                lastRomanResult = converted.trim();
+                previewEl.style.display = 'none';
+            } else {
+                previewEl.textContent = '→ ' + converted;
+                previewEl.style.display = 'block';
+            }
+        }
+
         function initRomanToHangul() {
             const inputEl = document.getElementById('target-sentence');
             if (!inputEl) return;
 
-            inputEl.addEventListener('input', (e) => {
-                let val = e.target.value;
-                // 간단하고 실용적인 로마자->한글 변환 매핑
-                let converted = convertRomanToHangul(val);
-                if (converted !== val && /[a-zA-Z]/.test(val)) {
-                    // 영어가 포함되어 변환 결과가 다를 때만 갱신
-                    let cursor = inputEl.selectionStart;
-                    inputEl.value = converted;
-                    inputEl.setSelectionRange(cursor, cursor);
-                }
+            let composing = false;
+
+            const sync = (commit) => {
+                updateRomanInput(commit);
+                refreshTargetCheck();
+            };
+
+            inputEl.addEventListener('compositionstart', () => { composing = true; });
+            inputEl.addEventListener('compositionend', () => {
+                composing = false;
+                sync(false);
             });
-        }
 
-        function convertRomanToHangul(str) {
-            // 자주 쓰이는 주요 자음/모음 및 음절 자동 치환 규칙
-            const map = {
-                'g': 'ㄱ', 'kk': 'ㄲ', 'n': 'ㄴ', 'd': 'ㄷ', 'tt': 'ㄸ', 'r': 'ㄹ', 'l': 'ㄹ',
-                'm': 'ㅁ', 'b': 'ㅂ', 'pp': 'ㅃ', 's': 'ㅅ', 'ss': 'ㅆ', 'j': 'ㅈ', 'jj': 'ㅉ',
-                'ch': 'ㅊ', 'k': 'ㅋ', 't': 'ㅌ', 'p': 'ㅍ', 'h': 'ㅎ',
-                'a': 'ㅏ', 'ae': 'ㅐ', 'ya': 'ㅑ', 'yae': 'ㅒ', 'eo': 'ㅓ', 'e': 'ㅔ',
-                'yeo': 'ㅕ', 'ye': 'ㅖ', 'o': 'ㅗ', 'wa': 'ㅘ', 'wae': 'ㅙ', 'oe': 'ㅚ',
-                'yo': 'ㅛ', 'u': 'ㅜ', 'wo': 'ㅝ', 'we': 'ㅞ', 'wi': 'ㅟ', 'yu': 'ㅠ',
-                'eu': 'ㅡ', 'yi': 'ㅢ', 'i': 'ㅣ', 'nn': 'ㄴㄴ', 'ng': 'ㅇ'
-            };
+            inputEl.addEventListener('input', () => {
+                if (composing) return;
+                // 스페이스를 누른 순간(맨 끝이 공백) 단어를 한글로 확정
+                sync(/\s$/.test(inputEl.value));
+            });
 
-            // 편의를 위해 학생들이 흔히 치는 대표 단어 조합 사전 매핑 우선 적용
-            const wordMap = {
-                "annyeong": "안녕",
-                "annyeonghaseyo": "안녕하세요",
-                "seonsaengnim": "선생님",
-                "gamsahamnida": "감사합니다",
-                "jeyukbokkeum": "제육볶음",
-                "bangapseumnida": "반갑습니다",
-                "hangugo": "한국어",
-                "palum": "발음"
-            };
+            inputEl.addEventListener('blur', () => sync(true));
 
-            let lower = str.toLowerCase().trim();
-            if (wordMap[lower]) return wordMap[lower];
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') sync(true);
+            });
 
-            // 일반적인 조합형태가 아닐 경우 원본 유지하되 영어 글자만 있으면 안내 문구 형태 유지
-            return str;
+            // 추천 표준 표기 버튼 클릭 → 입력창에 적용
+            const checkBox = document.getElementById('target-check');
+            if (checkBox) {
+                checkBox.addEventListener('mousedown', (e) => e.preventDefault()); // 입력창 blur 방지
+                checkBox.addEventListener('click', (e) => {
+                    const btn = e.target.closest('[data-suggest]');
+                    if (!btn) return;
+                    inputEl.value = btn.dataset.suggest;
+                    refreshTargetCheck();
+                });
+            }
+
+            refreshTargetCheck();
         }
 
         function switchTab(tabId, btnEl) {
@@ -465,6 +857,10 @@
         }
 
         async function handleRecordClick() {
+            // 녹음 시작 전에 아직 영어로 남아 있는 입력을 한글로 확정
+            updateRomanInput(true);
+            refreshTargetCheck();
+
             const targetInput = document.getElementById('target-sentence');
             const currentSentence = targetInput ? targetInput.value.trim() : "";
 
@@ -475,6 +871,13 @@
             }
 
             if (!isRecording) {
+                // 로마자를 소리 나는 대로 바꾼 결과가 표준 표기가 아니면 연습 시작을 막는다
+                // (틀린 발음/철자가 '표준 정답'으로 굳어지는 것을 방지)
+                const info = evaluateTarget(currentSentence);
+                if (isFromRoman(currentSentence) && !info.verified) {
+                    alert('영어로 입력한 소리를 한글로 바꾼 결과가 표준 표기로 확인되지 않아 연습을 시작할 수 없어요.\n안내에 나온 추천 표기를 선택하거나, 한글로 직접 입력해 주세요.');
+                    return;
+                }
                 await startRecording(currentSentence);
             } else {
                 stopRecording();
@@ -495,7 +898,7 @@
                 const streamObj = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
                 mediaRecorder = new MediaRecorder(streamObj);
-                
+
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data && event.data.size > 0) {
                         audioChunks.push(event.data);
@@ -505,10 +908,10 @@
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     const audioUrl = URL.createObjectURL(audioBlob);
-                    
+
                     document.getElementById('audio-container').innerHTML = `<audio controls src="${audioUrl}"></audio>`;
                     speechBox.innerText = `"${targetSentence}" 녹음 완료! 아래 플레이어로 확인하세요.`;
-                    
+
                     processAnalysis(targetSentence);
                     streamObj.getTracks().forEach(track => track.stop());
                 };
@@ -558,7 +961,7 @@
             chars.forEach((char, idx) => {
                 if (char.trim() === '') return;
                 let isWeak = ['ㅓ', 'ㅡ', 'ㄹ', 'ㄴ', 'ㅅ'].includes(char) || (idx % 2 === 1 && chars.length > 2);
-                
+
                 if (isWeak) {
                     redChars.push(char);
                     breakdownHtml += `
@@ -598,7 +1001,9 @@
                 score: `${score}%`,
                 date: new Date().toLocaleString('ko-KR'),
                 breakdownHtml: breakdownHtml,
-                breakdownText: breakdownTextSummary
+                breakdownText: breakdownTextSummary,
+                verified: evaluateTarget(targetSentence).verified,
+                romanInput: isFromRoman(targetSentence) ? lastRomanSource : ''
             };
 
             historyData.unshift(record);
@@ -646,7 +1051,7 @@
             c.innerHTML = historyData.map(h => `
                 <div class="history-item">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                        <span style="font-size:0.8rem; color:var(--text-sub);">👤 <strong>${h.studentName}</strong> | ${h.date}</span>
+                        <span style="font-size:0.8rem; color:var(--text-sub);">👤 <strong>${h.studentName}</strong> | ${h.date}${h.verified === false ? '<span class="badge-unverified">미검증 표기</span>' : ''}</span>
                         <span style="color:var(--primary-color); font-size:0.85rem; font-weight:bold;">일치율: ${h.score}</span>
                     </div>
                     <div style="font-weight:bold; font-size:0.95rem; margin-bottom: 6px;">문장: "${h.target}"</div>
