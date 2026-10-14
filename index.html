@@ -390,7 +390,9 @@
         let canvasEl = null, canvasCtx = null, sourceNode = null, streamObj = null;
         let animFrameId = null;
         let koreanVoices = [];
-        let lastSampleSentence = "안녕하세요";
+        
+        // 핵심 연동용 데이터 변수 (사용자가 발음한 문장 저장용)
+        let activeTargetSentence = "안녕하세요";
 
         let historyData = JSON.parse(localStorage.getItem('korean_speech_history')) || [];
 
@@ -406,14 +408,9 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
             const targetTab = document.getElementById(tabId);
-            if (targetTab) {
-                targetTab.classList.add('active');
-            }
-            if (btnEl) {
-                btnEl.classList.add('active');
-            }
+            if (targetTab) targetTab.classList.add('active');
+            if (btnEl) btnEl.classList.add('active');
 
-            // 기록 탭으로 이동할 때 실시간으로 목록 갱신
             if (tabId === 'tab-history') {
                 renderHistory();
             }
@@ -451,7 +448,7 @@
             canvasEl.height = 100;
         }
 
-        // 버튼 클릭 제어 함수
+        // 버튼 클릭 제어
         async function handleRecordClick() {
             if (!isRecording) {
                 await startRecording();
@@ -460,14 +457,13 @@
             }
         }
 
-        // 녹음 시작
+        // 녹음 시작 (파형 및 오디오 캡처 연동)
         async function startRecording() {
             const btn = document.getElementById('record-btn');
             const speechBox = document.getElementById('live-speech-box');
 
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 alert("이 브라우저에서는 마이크 녹음을 지원하지 않거나 보안 연결(HTTPS) 환경이 아닙니다.");
-                speechBox.innerText = "❌ 마이크를 지원하지 않거나 보안 접속(HTTPS)이 필요합니다.";
                 return;
             }
 
@@ -489,7 +485,9 @@
                     
                     document.getElementById('audio-container').innerHTML = `<audio controls src="${audioUrl}"></audio>`;
                     speechBox.innerText = '녹음 완료! 아래 플레이어로 내 목소리를 확인하세요.';
-                    processAnalysis(lastSampleSentence);
+                    
+                    // 분석 실행 (원하는 문장으로 가변 처리 가능)
+                    processAnalysis(activeTargetSentence);
                 };
 
                 mediaRecorder.start();
@@ -505,21 +503,11 @@
                 startAudioVisualizer(streamObj);
 
             } catch (err) {
-                console.error('Mic Access Error:', err);
+                console.error('Mic Error:', err);
                 isRecording = false;
                 btn.innerText = '🎤 자유 발음 시작';
                 btn.className = 'btn btn-primary';
-
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    alert('마이크 접근 권한이 거부되었습니다. 브라우저 주소창 왼쪽의 마이크 허용 설정을 확인하세요.');
-                    speechBox.innerText = '❌ 마이크 권한이 거부되었습니다.';
-                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                    alert('연결된 마이크 장치를 찾을 수 없습니다.');
-                    speechBox.innerText = '❌ 연결된 마이크 장치가 없습니다.';
-                } else {
-                    alert('마이크를 켜는 중 오류가 발생했습니다: ' + err.message);
-                    speechBox.innerText = '❌ 마이크 오류: ' + err.message;
-                }
+                alert('마이크 접근 중 오류가 발생했습니다: ' + err.message);
             }
         }
 
@@ -529,11 +517,7 @@
             isRecording = false;
 
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                try {
-                    mediaRecorder.stop();
-                } catch(e) {
-                    console.error('Stop Recorder Error:', e);
-                }
+                try { mediaRecorder.stop(); } catch(e) {}
             }
             stopAudioVisualizer();
 
@@ -541,6 +525,7 @@
             btn.className = 'btn btn-primary';
         }
 
+        // 음성 파형 시각화 엔진
         function startAudioVisualizer(stream) {
             try {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -553,7 +538,7 @@
 
                 drawWaveform();
             } catch (e) {
-                console.error('Audio Visualizer Error:', e);
+                console.error('Visualizer Error:', e);
             }
         }
 
@@ -608,6 +593,7 @@
             }
         }
 
+        // 분석 리포트 생성 및 텍스트 연동
         function processAnalysis(targetSentence) {
             const studentName = document.getElementById('student-name').value.trim() || '익명 학생';
             document.getElementById('result-card').style.display = 'block';
@@ -675,11 +661,11 @@
             }
         }
 
+        // 원어민 표준 발음 듣기 (분석된 텍스트와 완벽 연동)
         function playNativeAudio() {
-            const targetSentence = lastSampleSentence;
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(targetSentence);
+                const utterance = new SpeechSynthesisUtterance(activeTargetSentence);
                 utterance.lang = 'ko-KR';
                 utterance.rate = 0.85;
 
