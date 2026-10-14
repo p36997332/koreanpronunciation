@@ -347,7 +347,7 @@
             recognition = new SR();
             recognition.lang = 'ko-KR';
             recognition.interimResults = true;
-            recognition.continuous = false;
+            recognition.continuous = true;
 
             recognition.onresult = (event) => {
                 interimTranscript = '';
@@ -423,15 +423,22 @@
                     interimTranscript = '';
                 }
 
-                if (recognition) {
-                    try { recognition.stop(); } catch(e) {}
+                if (finalTranscript) {
+                    document.getElementById('live-speech-box').innerText = finalTranscript;
                 }
-                stopAudioVisualizer();
 
-                btn.innerText = '🎤 발음 시작';
-                btn.className = 'btn btn-primary';
+                // 800ms 지연을 주어 음성 인식기가 최종 텍스트를 확정할 수 있는 여유 시간 확보
+                setTimeout(() => {
+                    if (recognition) {
+                        try { recognition.stop(); } catch(e) {}
+                    }
+                    stopAudioVisualizer();
 
-                setTimeout(analyzeSpeechResult, 400);
+                    btn.innerText = '🎤 발음 시작';
+                    btn.className = 'btn btn-primary';
+
+                    analyzeSpeechResult();
+                }, 800);
             }
         }
 
@@ -514,7 +521,6 @@
             let diffHtml = `<strong>인식된 발음: </strong> <span class="diff-tag diff-correct">${spoken}</span>`;
             let guideText = '';
 
-            // 발음 패턴에 따른 정밀 교정 팁 분석
             if (spoken.includes('오')) {
                 guideText += "💡 <strong>'ㅓ/ㅗ' 발음 팁:</strong> 만약 '어'를 의도하셨다면 입을 'ㅗ'보다 더 크게 벌리고 혀를 내리면서 '어' 소리를 내보세요.<br>";
             }
@@ -558,7 +564,7 @@
 
             c.innerHTML = historyData.map(h => `
                 <div class="history-item">
-                    <div style="font-size:0.8rem;color:var(--text-sub);">${h.studentName} | ${h.date}</div>
+                    <div style="font-size:0.8rem;color:var(--text-sub);">${h.studentName} \vert{}${h.date}</div>
                     <div style="color:var(--accent-color);font-weight:bold;font-size:0.95rem;">발음 문장: ${h.spoken}</div>
                 </div>
             `).join('');
@@ -590,10 +596,4 @@
             c.innerHTML = historyData.map(h => `
                 <div class="history-item">
                     <div style="font-size:0.8rem;color:var(--text-sub);"><strong>${h.studentName}</strong> (${h.date})</div>
-                    <div style="font-size:0.85rem;color:#DC2626;">실제 발음: ${h.spoken}</div>
-                </div>
-            `).join('');
-        }
-    </script>
-</body>
-</html>
+                    <div style="font-size:0.85rem;color:#
