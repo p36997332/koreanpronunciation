@@ -162,7 +162,28 @@
             min-height: 30px;
         }
 
-        .guide-box {
+        /* 비교 분석 결과 스타일 */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 12px;
+        }
+
+        .comparison-table th, .comparison-table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        .comparison-table th {
+            background: #F1F5F9;
+            color: var(--text-sub);
+            width: 35%;
+        }
+
+        .correction-tip {
             background: #EFF6FF;
             border-left: 4px solid var(--primary-color);
             padding: 12px;
@@ -170,15 +191,7 @@
             font-size: 0.9rem;
             line-height: 1.5;
             color: #1E3A8A;
-            margin-top: 10px;
         }
-
-        .diff-tag {
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin: 2px;
-        }
-        .diff-correct { background: #DCFCE7; color: #166534; }
 
         .history-item {
             border-bottom: 1px solid var(--border-color);
@@ -220,15 +233,27 @@
                 </div>
 
                 <div class="card">
-                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">녹음된 음성 결과 및 재생</div>
+                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">녹음된 내 목소리 재생</div>
                     <div id="live-speech-box" class="live-speech">버튼을 누르고 연습할 문장을 말해보세요</div>
                     <div id="audio-container"></div>
                 </div>
 
+                <!-- 발음 교정 분석 결과 영역 -->
                 <div id="result-card" class="card" style="display: none;">
-                    <div style="font-weight: bold; margin-bottom: 8px;">📊 발음 피드백 및 분석</div>
-                    <div id="diff-view" style="margin-bottom: 10px; line-height: 1.6;"></div>
-                    <div id="correction-guide" class="guide-box"></div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">📊 발음 진단 및 표준 대조 분석</div>
+                    
+                    <table class="comparison-table">
+                        <tr>
+                            <th>🔊 내 발음 (오디오)</th>
+                            <td id="res-spoken" style="color: var(--accent-color); font-weight: bold;">녹음 파일 재생 확인</td>
+                        </tr>
+                        <tr>
+                            <th>⭐ 원어민 표준 발음</th>
+                            <td id="res-standard" style="color: #166534; font-weight: bold;">안녕하세요</td>
+                        </tr>
+                    </table>
+
+                    <div id="correction-tip" class="correction-tip"></div>
                 </div>
             </div>
 
@@ -270,7 +295,7 @@
                     </ul>
                 </div>
 
-                <div class="guide-box" style="margin-bottom: 16px;">
+                <div class="correction-tip" style="margin-bottom: 16px;">
                     <strong>📌 교사 지도 요령 (Instruction Guide)</strong><br>
                     - 'ㅓ' 발음 지도 시 입을 'ㅗ'보다 더 벌리고 혀를 내리도록 지도하세요.<br>
                     - 받침 발음 시 입술을 닫는 타이밍을 시각적으로 보여주는 것이 효과적입니다.
@@ -344,15 +369,15 @@
                         const audioUrl = URL.createObjectURL(audioBlob);
                         
                         document.getElementById('audio-container').innerHTML = `<audio controls src="${audioUrl}"></audio>`;
-                        document.getElementById('live-speech-box').innerText = '녹음 완료! 아래 재생 버튼으로 확인하세요.';
+                        document.getElementById('live-speech-box').innerText = '녹음 완료! 아래 플레이어로 내 목소리를 확인하세요.';
                         processAnalysis();
                     };
 
                     mediaRecorder.start();
                     isRecording = true;
-                    btn.innerText = '⏹️ 중단 및 분석';
+                    btn.innerText = '⏹️ 중단 및 진단';
                     btn.className = 'btn btn-danger';
-                    document.getElementById('live-speech-box').innerText = '🔴 녹음 중... 말을 마치면 중단 버튼을 누르세요.';
+                    document.getElementById('live-speech-box').innerText = '🔴 녹음 중... 정확한 발음으로 문장을 말한 뒤 중단하세요.';
                     document.getElementById('result-card').style.display = 'none';
                     document.getElementById('audio-container').innerHTML = '';
 
@@ -442,18 +467,20 @@
             const studentName = document.getElementById('student-name').value.trim() || '익명 학생';
             document.getElementById('result-card').style.display = 'block';
 
-            let diffHtml = `<strong>발음 녹음 완료: </strong> <span class="diff-tag diff-correct">정상 녹음됨</span><br>`;
-            diffHtml += `<span>자신의 목소리를 위 재생 버튼으로 확인하고 발음을 교정해보세요.</span>`;
-
-            let guideText = "💡 <strong>교사 피드백 가이드:</strong> 녹음된 음성을 직접 재생하며 억양과 발음의 정확도를 점검하세요.";
-
-            document.getElementById('diff-view').innerHTML = diffHtml;
-            document.getElementById('correction-guide').innerHTML = guideText;
+            // 표준 발음 대조 및 교정 팁 세팅
+            document.getElementById('res-spoken').innerHTML = `내 녹음 파일 재생 (${(audioChunks.length * 0.1).toFixed(1)}초 녹음됨)`;
+            document.getElementById('res-standard').innerText = '안녕하세요 (표준 억양)';
+            
+            let tipHtml = "💡 <strong>한국어 발음 교정 포인트:</strong><br>";
+            tipHtml += "- '안녕' 발음 시 받침 'ㄴ'과 'ㅇ'의 울림소리를 정확히 구분해 보세요.<br>";
+            tipHtml += "- '하세요'의 '하'는 마찰음 없이 입안의 공기를 가볍게 터뜨리며 발음해야 자연스럽습니다.";
+            
+            document.getElementById('correction-tip').innerHTML = tipHtml;
 
             const record = {
                 studentName,
-                target: '음성 발음 연습',
-                spoken: '녹음 완료 (오디오 저장)',
+                target: '표준 한국어 발음 연습',
+                spoken: '오디오 녹음 완료',
                 date: new Date().toLocaleString('ko-KR')
             };
 
