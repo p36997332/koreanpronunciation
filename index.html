@@ -302,8 +302,6 @@
         let canvasEl = null, canvasCtx = null, sourceNode = null, streamObj = null;
         let animFrameId = null;
         let finalTranscript = '';
-        let interimTranscript = '';
-        let restartTimer = null;
 
         let historyData = JSON.parse(localStorage.getItem('korean_speech_history')) || [];
 
@@ -347,98 +345,74 @@
             recognition = new SR();
             recognition.lang = 'ko-KR';
             recognition.interimResults = true;
-            recognition.continuous = true;
+            recognition.continuous = false; // 끊김 방지를 위해 단건 인식으로 안정화
 
             recognition.onresult = (event) => {
-                interimTranscript = '';
+                let interim = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    const t = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += t;
+                        finalTranscript += event.results[i][0].transcript;
                     } else {
-                        interimTranscript += t;
+                        interim += event.results[i][0].transcript;
                     }
                 }
-                const spokenText = finalTranscript + interimTranscript;
-                document.getElementById('live-speech-box').innerText = spokenText;
+                document.getElementById('live-speech-box').innerText = finalTranscript + interim;
             };
 
             recognition.onerror = (event) => {
                 console.error('SpeechRecognition error:', event.error);
-                if (event.error === 'not-allowed') {
-                    document.getElementById('live-speech-box').innerText = '⚠️ 마이크 권한이 거부되었습니다.';
-                }
             };
 
             recognition.onend = () => {
-                if (!isRecording) return;
-                clearTimeout(restartTimer);
-                restartTimer = setTimeout(() => {
-                    if (isRecording) {
-                        try { recognition.start(); }
-                        catch (e) { console.warn('recognition restart skipped:', e.message); }
-                    }
-                }, 200);
+                if (isRecording) {
+                    isRecording = false;
+                    document.getElementById('record-btn').innerText = '🎤 발음 시작';
+                    document.getElementById('record-btn').className = 'btn btn-primary';
+                    stopAudioVisualizer();
+                    analyzeSpeechResult();
+                }
             };
         }
 
-        async function toggleRecording() {
+        function toggleRecording() {
             const btn = document.getElementById('record-btn');
 
             if (!isRecording) {
-                try {
-                    streamObj = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                finalTranscript = '';
+                document.getElementById('live-speech-box').innerText = '듣고 있는 중...';
+                document.getElementById('result-card').style.display = 'none';
 
-                    resizeCanvas();
-                    finalTranscript = '';
-                    interimTranscript = '';
-                    isRecording = true; 
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                    .then(stream => {
+                        streamObj = stream;
+                        resizeCanvas();
+                        startAudioVisualizer(stream);
 
-                    startAudioVisualizer(streamObj);
-
-                    if (recognition) {
-                        try {
-                            recognition.start();
-                        } catch (e) {
-                            console.log('Recognition already started:', e);
+                        if (recognition) {
+                            try {
+                                recognition.start();
+                                isRecording = true;
+                                btn.innerText = '⏹️ 중단 및 분석';
+                                btn.className = 'btn btn-danger';
+                            } catch (e) {
+                                console.error('Recognition start failed:', e);
+                                alert('음성 인식을 시작할 수 없습니다.');
+                            }
                         }
-                    }
-
-                    btn.innerText = '⏹️ 중단 및 분석';
-                    btn.className = 'btn btn-danger';
-                    document.getElementById('live-speech-box').innerText = '듣고 있는 중...';
-                    document.getElementById('result-card').style.display = 'none';
-
-                } catch (err) {
-                    isRecording = false;
-                    console.error(err);
-                    alert('마이크 접근 권한이 필요합니다.\n주소창 왼쪽 🔒 아이콘 → 마이크 → 허용 후 새로고침하세요.');
-                }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('마이크 접근 권한이 필요합니다.');
+                    });
             } else {
                 isRecording = false;
-                clearTimeout(restartTimer);
-
-                if (interimTranscript) {
-                    finalTranscript += interimTranscript;
-                    interimTranscript = '';
+                if (recognition) {
+                    try { recognition.stop(); } catch(e) {}
                 }
-
-                if (finalTranscript) {
-                    document.getElementById('live-speech-box').innerText = finalTranscript;
-                }
-
-                // 800ms 지연을 주어 음성 인식기가 최종 텍스트를 확정할 수 있는 여유 시간 확보
-                setTimeout(() => {
-                    if (recognition) {
-                        try { recognition.stop(); } catch(e) {}
-                    }
-                    stopAudioVisualizer();
-
-                    btn.innerText = '🎤 발음 시작';
-                    btn.className = 'btn btn-primary';
-
-                    analyzeSpeechResult();
-                }, 800);
+                stopAudioVisualizer();
+                btn.innerText = '🎤 발음 시작';
+                btn.className = 'btn btn-primary';
+                analyzeSpeechResult();
             }
         }
 
@@ -507,11 +481,11 @@
 
         function analyzeSpeechResult() {
             const liveBox = document.getElementById('live-speech-box');
-            const spoken = liveBox.innerText.trim();
+            let spoken = liveBox.innerText.trim();
             const studentName = document.getElementById('student-name').value.trim() || '익명 학생';
 
             const BLOCKED = ['듣고 있는 중...', '버튼을 누르고 연습할 문장을 자유롭게 말해보세요'];
-            if (!spoken || BLOCKED.includes(spoken) || spoken.startsWith('⚠️')) {
+            if (!spoken || BLOCKED.includes(spoken)) {
                 liveBox.innerText = '⚠️ 음성이 인식되지 않았습니다. 다시 시도해 주세요.';
                 return;
             }
@@ -522,13 +496,13 @@
             let guideText = '';
 
             if (spoken.includes('오')) {
-                guideText += "💡 <strong>'ㅓ/ㅗ' 발음 팁:</strong> 만약 '어'를 의도하셨다면 입을 'ㅗ'보다 더 크게 벌리고 혀를 내리면서 '어' 소리를 내보세요.<br>";
+                guideText += "💡 <strong>'ㅓ/ㅗ' 발음 팁:</strong> '어'를 의도하셨다면 입을 'ㅗ'보다 더 크게 벌리고 혀를 내려 발음해 보세요.<br>";
             }
             if (spoken.includes('우')) {
-                guideText += "💡 <strong>'ㅡ/ㅜ' 발음 팁:</strong> 만약 '으'를 의도하셨다면 입술을 옆으로 입꼬리를 당기며 '으'라고 발음해 보세요.<br>";
+                guideText += "💡 <strong>'ㅡ/ㅜ' 발음 팁:</strong> '으'를 의도하셨다면 입술을 옆으로 당기며 발음해 보세요.<br>";
             }
             if (!guideText) {
-                guideText = "🎉 선명하게 잘 인식되었습니다! 더 정교한 발음을 위해 한 음절씩 정확하고 천천히 말하는 연습도 해보세요.";
+                guideText = "🎉 선명하게 잘 인식되었습니다! 정확하고 멋진 발음입니다.";
             }
 
             document.getElementById('diff-view').innerHTML = diffHtml;
@@ -549,51 +523,4 @@
                 fetch(GAS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(record)
-                });
-            }
-        }
-
-        function renderHistory() {
-            const c = document.getElementById('history-list');
-            if (!historyData.length) {
-                c.innerHTML = `<p style="color:var(--text-sub);font-size:0.9rem;">아직 연습한 기록이 없습니다.</p>`;
-                return;
-            }
-
-            c.innerHTML = historyData.map(h => `
-                <div class="history-item">
-                    <div style="font-size:0.8rem;color:var(--text-sub);">${h.studentName} \vert{}${h.date}</div>
-                    <div style="color:var(--accent-color);font-weight:bold;font-size:0.95rem;">발음 문장: ${h.spoken}</div>
-                </div>
-            `).join('');
-        }
-
-        function checkAdminPass() {
-            if (document.getElementById('admin-pass').value === '0849') {
-                document.getElementById('admin-auth-box').style.display = 'none';
-                document.getElementById('admin-dashboard').style.display = 'block';
-                renderAdminAllHistory();
-            } else {
-                alert('비밀번호가 틀렸습니다.');
-            }
-        }
-
-        function lockAdmin() {
-            document.getElementById('admin-auth-box').style.display = 'block';
-            document.getElementById('admin-dashboard').style.display = 'none';
-            document.getElementById('admin-pass').value = '';
-        }
-
-        function renderAdminAllHistory() {
-            const c = document.getElementById('admin-all-history');
-            if (!historyData.length) {
-                c.innerHTML = `<p style="font-size:0.85rem;color:var(--text-sub);">수합된 데이터가 없습니다.</p>`;
-                return;
-            }
-
-            c.innerHTML = historyData.map(h => `
-                <div class="history-item">
-                    <div style="font-size:0.8rem;color:var(--text-sub);"><strong>${h.studentName}</strong> (${h.date})</div>
-                    <div style="font-size:0.85rem;color:#
+                    headers: {
