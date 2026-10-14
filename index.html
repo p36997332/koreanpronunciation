@@ -217,15 +217,12 @@
                     <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold; display: block; margin-bottom: 6px;">학습자 이름</label>
                     <input type="text" id="student-name" placeholder="이름을 입력하세요 (예: Tanaka)" style="margin-bottom: 12px;">
                     
-                    <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold; display: block; margin-bottom: 6px;">연습할 한국어 문장 입력</label>
-                    <input type="text" id="target-sentence" placeholder="학습할 문장을 입력하세요 (예: 안녕하세요)" style="margin-bottom: 12px;">
-
-                    <button id="record-btn" class="btn btn-primary" style="width: 100%;" onclick="toggleRecording()">🎤 녹음 시작</button>
+                    <button id="record-btn" class="btn btn-primary" style="width: 100%;" onclick="toggleRecording()">🎤 발음 시작</button>
                 </div>
 
                 <div class="card">
-                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">녹음된 오디오 및 재생</div>
-                    <div id="live-speech-box" class="live-speech">마이크 버튼을 누르고 문장을 말한 뒤 중단하세요</div>
+                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">녹음된 음성 결과 및 재생</div>
+                    <div id="live-speech-box" class="live-speech">버튼을 누르고 연습할 문장을 말해보세요</div>
                     <div id="audio-container"></div>
                 </div>
 
@@ -329,13 +326,6 @@
 
         async function toggleRecording() {
             const btn = document.getElementById('record-btn');
-            const targetSentence = document.getElementById('target-sentence').value.trim();
-
-            if (!targetSentence) {
-                alert('먼저 연습할 한국어 문장을 입력해 주세요.');
-                document.getElementById('target-sentence').focus();
-                return;
-            }
 
             if (!isRecording) {
                 try {
@@ -354,18 +344,16 @@
                         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         const audioUrl = URL.createObjectURL(audioBlob);
                         
-                        const audioContainer = document.getElementById('audio-container');
-                        audioContainer.innerHTML = `<audio controls src="${audioUrl}"></audio>`;
-                        
-                        document.getElementById('live-speech-box').innerText = '녹음 완료! 아래 재생 버튼으로 확인하세요.';
-                        analyzeRecordedSpeech(targetSentence);
+                        document.getElementById('audio-container').innerHTML = `<audio controls src="${audioUrl}"></audio>`;
+                        document.getElementById('live-speech-box').innerText = '녹음 완료! 아래 플레이어로 발음을 들어보세요.';
+                        processAnalysis();
                     };
 
                     mediaRecorder.start();
                     isRecording = true;
-                    btn.innerText = '⏹️ 녹음 중단 및 분석';
+                    btn.innerText = '⏹️ 중단 및 분석';
                     btn.className = 'btn btn-danger';
-                    document.getElementById('live-speech-box').innerText = '🔴 녹음 중입니다... 말을 마치면 중단 버튼을 누르세요.';
+                    document.getElementById('live-speech-box').innerText = '🔴 녹음 중... 말을 마치면 중단 버튼을 누르세요.';
                     document.getElementById('result-card').style.display = 'none';
                     document.getElementById('audio-container').innerHTML = '';
 
@@ -383,7 +371,7 @@
                 }
                 stopAudioVisualizer();
 
-                btn.innerText = '🎤 녹음 시작';
+                btn.innerText = '🎤 발음 시작';
                 btn.className = 'btn btn-primary';
             }
         }
@@ -451,22 +439,22 @@
             }
         }
 
-        function analyzeRecordedSpeech(targetSentence) {
+        function processAnalysis() {
             const studentName = document.getElementById('student-name').value.trim() || '익명 학생';
             document.getElementById('result-card').style.display = 'block';
 
-            let diffHtml = `<strong>목표 문장: </strong> <span class="diff-tag diff-correct">${targetSentence}</span><br>`;
-            diffHtml += `<span>오디오 녹음이 안전하게 완료되었습니다. 위 플레이어로 발음을 직접 들어보세요!</span>`;
+            let diffHtml = `<strong>발음 녹음 완료: </strong> <span class="diff-tag diff-correct">정상 녹음됨</span><br>`;
+            diffHtml += `<span>자신의 목소리를 위 재생 버튼으로 확인하고 발음을 교정해보세요.</span>`;
 
-            let guideText = "💡 <strong>교정 가이드:</strong> 녹음된 음성 파일을 재생하여 본인의 발음 억양과 목표 문장을 비교해 보세요.";
+            let guideText = "💡 <strong>교사 피드백 가이드:</strong> 원어민 표준 발음과 비교하여 억양과 성조를 반복해서 점검하세요.";
 
             document.getElementById('diff-view').innerHTML = diffHtml;
             document.getElementById('correction-guide').innerHTML = guideText;
 
             const record = {
                 studentName,
-                target: targetSentence,
-                spoken: '[오디오 녹음 파일]',
+                target: '음성 녹음 연습',
+                spoken: '녹음 완료 (오디오 저장)',
                 date: new Date().toLocaleString('ko-KR')
             };
 
@@ -494,8 +482,7 @@
             c.innerHTML = historyData.map(h => `
                 <div class="history-item">
                     <div style="font-size:0.8rem;color:var(--text-sub);">${h.studentName} | ${h.date}</div>
-                    <div style="font-weight:bold;font-size:0.95rem;">목표: ${h.target}</div>
-                    <div style="color:var(--primary-color);font-size:0.85rem;">상태: ${h.spoken}</div>
+                    <div style="font-weight:bold;font-size:0.95rem;">연습 항목: ${h.target}</div>
                 </div>
             `).join('');
         }
@@ -526,7 +513,7 @@
             c.innerHTML = historyData.map(h => `
                 <div class="history-item">
                     <div style="font-size:0.8rem;color:var(--text-sub);"><strong>${h.studentName}</strong> (${h.date})</div>
-                    <div style="font-size:0.85rem;">목표: ${h.target}</div>
+                    <div style="font-size:0.85rem;">${h.target}</div>
                 </div>
             `).join('');
         }
