@@ -179,7 +179,6 @@
             margin: 2px;
         }
         .diff-correct { background: #DCFCE7; color: #166534; }
-        .diff-wrong { background: #FEE2E2; color: #991B1B; font-weight: bold; }
 
         .history-item {
             border-bottom: 1px solid var(--border-color);
@@ -345,7 +344,7 @@
                         const audioUrl = URL.createObjectURL(audioBlob);
                         
                         document.getElementById('audio-container').innerHTML = `<audio controls src="${audioUrl}"></audio>`;
-                        document.getElementById('live-speech-box').innerText = '녹음 완료! 아래 플레이어로 발음을 들어보세요.';
+                        document.getElementById('live-speech-box').innerText = '녹음 완료! 아래 재생 버튼으로 확인하세요.';
                         processAnalysis();
                     };
 
@@ -446,14 +445,14 @@
             let diffHtml = `<strong>발음 녹음 완료: </strong> <span class="diff-tag diff-correct">정상 녹음됨</span><br>`;
             diffHtml += `<span>자신의 목소리를 위 재생 버튼으로 확인하고 발음을 교정해보세요.</span>`;
 
-            let guideText = "💡 <strong>교사 피드백 가이드:</strong> 원어민 표준 발음과 비교하여 억양과 성조를 반복해서 점검하세요.";
+            let guideText = "💡 <strong>교사 피드백 가이드:</strong> 녹음된 음성을 직접 재생하며 억양과 발음의 정확도를 점검하세요.";
 
             document.getElementById('diff-view').innerHTML = diffHtml;
             document.getElementById('correction-guide').innerHTML = guideText;
 
             const record = {
                 studentName,
-                target: '음성 녹음 연습',
+                target: '음성 발음 연습',
                 spoken: '녹음 완료 (오디오 저장)',
                 date: new Date().toLocaleString('ko-KR')
             };
