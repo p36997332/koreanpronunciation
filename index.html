@@ -388,17 +388,22 @@
 
             if (!isRecording) {
                 try {
-                    // 마이크 권한 요청 1회 호출
+                    // ★ 마이크 스트림 권한 1회만 요청 (여기서 팝업 1회 발생)
                     streamObj = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
                     resizeCanvas();
                     finalTranscript = '';
-                    isRecording = true; // ★★ 파형 루프가 즉시 돌도록 먼저 세팅 ★★
+                    isRecording = true; 
 
                     startAudioVisualizer(streamObj);
 
+                    // ★ 이미 권한이 허용된 상태의 인식 객체를 재사용하여 추가 팝업 방지
                     if (recognition) {
-                        recognition.start();
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            console.log('Recognition already started:', e);
+                        }
                     }
 
                     btn.innerText = '⏹️ 중단 및 분석';
