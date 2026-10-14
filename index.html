@@ -267,8 +267,8 @@
                 </div>
 
                 <div class="card">
-                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">실시간 음성 인식 및 내 녹음 오디오</div>
-                    <div id="live-speech-box" class="live-speech">버튼을 누르고 아무 문장이나 편하게 말해 보세요</div>
+                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">내 녹음 오디오 재생</div>
+                    <div id="live-speech-box" class="live-speech">버튼을 누르고 편하게 말씀해 보세요</div>
                     <div id="audio-container"></div>
                 </div>
 
@@ -360,7 +360,7 @@
             <div style="font-size: 0.85rem; color: #475569; display: flex; flex-direction: column; gap: 10px; line-height: 1.5;">
                 <div style="background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
                     <strong style="color: #1E293B; display: block; margin-bottom: 2px;">1. 실전 녹음 및 자유 발음 진단</strong>
-                    마이크 버튼을 누르고 원하는 한국어 문장을 자유롭게 말씀하세요. 음성 인식이 완료되면 즉시 음절별 분석 리포트가 생성됩니다.
+                    마이크 버튼을 누르고 편하게 말씀하신 뒤 중단 버튼을 누르면 즉시 음절별 분석 리포트가 생성됩니다.
                 </div>
 
                 <div style="background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
@@ -369,127 +369,4 @@
                 </div>
             </div>
 
-            <button onclick="toggleGuide(false)" style="width: 100%; margin-top: 16px; padding: 10px; background: #3B82F6; color: white; font-weight: 600; border-radius: 10px; border: none; cursor: pointer; font-size: 0.9rem;">
-                확인하였습니다
-            </button>
-        </div>
-    </div>
-
-    <script>
-        const GAS_URL = "";
-
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let isRecording = false;
-        let audioCtx = null, analyser = null, dataArray = null;
-        let canvasEl = null, canvasCtx = null, sourceNode = null, streamObj = null;
-        let animFrameId = null;
-        let koreanVoices = [];
-        
-        let recognition = null;
-        let lastRecognizedSentence = "안녕하세요"; // 분석용 최신 인식 텍스트 저장
-
-        let historyData = JSON.parse(localStorage.getItem('korean_speech_history')) || [];
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initCanvas();
-            renderHistory();
-            initVoices();
-            initSpeechRecognition();
-        });
-
-        function initVoices() {
-            if ('speechSynthesis' in window) {
-                const loadVoices = () => {
-                    koreanVoices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('ko') || v.lang.includes('KR'));
-                };
-                loadVoices();
-                if (window.speechSynthesis.onvoiceschanged !== undefined) {
-                    window.speechSynthesis.onvoiceschanged = loadVoices;
-                }
-            }
-        }
-
-        // Web Speech API (음성 인식 STT 초기화)
-        function initSpeechRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                console.warn("이 브라우저는 음성 인식을 지원하지 않습니다.");
-                return;
-            }
-
-            recognition = new SpeechRecognition();
-            recognition.lang = 'ko-KR';
-            recognition.interimResults = true;
-            recognition.continuous = false;
-
-            recognition.onresult = (event) => {
-                let interimTranscript = '';
-                let finalTranscript = '';
-
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
-                }
-
-                if (finalTranscript) {
-                    lastRecognizedSentence = finalTranscript.trim();
-                    document.getElementById('live-speech-box').innerText = `인식된 문장: "${lastRecognizedSentence}"`;
-                } else if (interimTranscript) {
-                    document.getElementById('live-speech-box').innerText = `듣는 중... "${interimTranscript}"`;
-                }
-            };
-
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-            };
-        }
-
-        function switchTab(tabId, btnEl) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-
-            document.getElementById(tabId).classList.add('active');
-            if (btnEl) btnEl.classList.add('active');
-        }
-
-        function toggleGuide(show) {
-            document.getElementById('guide-modal').style.display = show ? 'flex' : 'none';
-        }
-
-        function initCanvas() {
-            canvasEl = document.getElementById('waveform');
-            if (!canvasEl) return;
-            canvasCtx = canvasEl.getContext('2d');
-            resizeCanvas();
-            canvasCtx.fillStyle = '#0F172A';
-            canvasCtx.fillRect(0, 0, canvasEl.width, canvasEl.height);
-        }
-
-        function resizeCanvas() {
-            if (!canvasEl) return;
-            const parent = canvasEl.parentElement;
-            canvasEl.width = Math.max(parent.clientWidth - 20, 200);
-            canvasEl.height = 100;
-        }
-
-        async function toggleRecording() {
-            const btn = document.getElementById('record-btn');
-
-            if (!isRecording) {
-                try {
-                    audioChunks = [];
-                    streamObj = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-
-                    mediaRecorder = new MediaRecorder(streamObj);
-                    
-                    mediaRecorder.ondataavailable = (event) => {
-                        if (event.data.size > 0) {
-                            audioChunks.push(event.data);
-                        }
-                    };
-
-                    mediaRecorder.onstop
+            <button onclick="toggleGuide(false)" style="width: 100%; margin-top: 16px; padding: 10px; background: #3B82F6; color: white; font-weight: 600; border-radius: 10px; border:
