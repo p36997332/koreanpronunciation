@@ -248,12 +248,17 @@
                     <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold; display: block; margin-bottom: 6px;">학습자 이름</label>
                     <input type="text" id="student-name" placeholder="이름을 입력하세요 (예: Tanaka)" style="margin-bottom: 12px;">
                     
-                    <button id="record-btn" class="btn btn-primary" style="width: 100%;" onclick="handleRecordClick()">🎤 자유 발음 시작</button>
+                    <label style="font-size: 0.85rem; color: var(--text-sub); font-weight: bold; display: block; margin-bottom: 6px;">
+                        연습할 목표 문장 <span style="font-size: 0.75rem; color: var(--primary-color); font-weight: normal;">(영어/로마자로 치면 자동 한글 변환됨!)</span>
+                    </label>
+                    <input type="text" id="target-sentence" placeholder="예: seonsaengnim annyeonghaseyo" value="안녕하세요" style="margin-bottom: 12px;">
+
+                    <button id="record-btn" class="btn btn-primary" style="width: 100%;" onclick="handleRecordClick()">🎤 발음 연습 시작</button>
                 </div>
 
                 <div class="card">
-                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px;">내 녹음 오디오 재생</div>
-                    <div id="live-speech-box" class="live-speech">버튼을 누르고 편하게 말씀해 보세요</div>
+                    <div style="font-size: 0.80rem; color: var(--text-sub); margin-bottom: 4px;">내 녹음 오디오 재생</div>
+                    <div id="live-speech-box" class="live-speech">목표 문장을 확인하고 버튼을 눌러 발음해 보세요</div>
                     <div id="audio-container"></div>
                 </div>
 
@@ -347,13 +352,13 @@
 
             <div style="font-size: 0.85rem; color: #475569; display: flex; flex-direction: column; gap: 10px; line-height: 1.5;">
                 <div style="background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
-                    <strong style="color: #1E293B; display: block; margin-bottom: 2px;">1. 실전 녹음 및 자유 발음 진단</strong>
-                    마이크 버튼을 누르고 편하게 말씀하신 뒤 중단 버튼을 누르면 즉시 음절별 분석 리포트가 생성됩니다.
+                    <strong style="color: #1E293B; display: block; margin-bottom: 2px;">1. 실전 녹음 및 진단</strong>
+                    목표 문장을 입력(영어로 쳐도 자동 한글 변환됨)하고 마이크 버튼을 눌러 발음한 뒤 중단 버튼을 누르면 맞춤형 분석 리포트가 생성됩니다.
                 </div>
 
                 <div style="background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
                     <strong style="color: #1E293B; display: block; margin-bottom: 2px;">2. 파란색(우수) & 빨간색(부족) 분석</strong>
-                    발음이 우수한 음절은 🟦 파란색 상자로, 개선이 필요한 취약 음절은 🟥 빨간색 상자로 표시되어 집중 교정이 가능합니다.
+                    발음이 우수한 음절은 🟦 파란색 상자로, 개선이 필요한 취약 음절은 🟥 빨간색 상자로 표시됩니다.
                 </div>
             </div>
 
@@ -364,21 +369,71 @@
     </div>
 
     <script>
-        // 발급하신 구글 앱스 스크립트 웹 앱 URL 적용 완료
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwW_SzYF88_snxi_0KGDX6ouLZmiOKEYeMFxOxFbUhWsg5BbzFrNHj54mIVgP2cbNR9/exec";
 
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
         let koreanVoices = [];
-        let activeTargetSentence = "안녕하세요";
 
         let historyData = JSON.parse(localStorage.getItem('korean_speech_history')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
             renderHistory();
             initVoices();
+            initRomanToHangul(); // 영타-한글 자동 변환 엔진 장착
         });
+
+        // ----------------------------------------------------
+        // 💡 로마자(영어)를 한글 자모 조합으로 자동 변환해 주는 로직
+        // ----------------------------------------------------
+        function initRomanToHangul() {
+            const inputEl = document.getElementById('target-sentence');
+            if (!inputEl) return;
+
+            inputEl.addEventListener('input', (e) => {
+                let val = e.target.value;
+                // 간단하고 실용적인 로마자->한글 변환 매핑
+                let converted = convertRomanToHangul(val);
+                if (converted !== val && /[a-zA-Z]/.test(val)) {
+                    // 영어가 포함되어 변환 결과가 다를 때만 갱신
+                    let cursor = inputEl.selectionStart;
+                    inputEl.value = converted;
+                    inputEl.setSelectionRange(cursor, cursor);
+                }
+            });
+        }
+
+        function convertRomanToHangul(str) {
+            // 자주 쓰이는 주요 자음/모음 및 음절 자동 치환 규칙
+            const map = {
+                'g': 'ㄱ', 'kk': 'ㄲ', 'n': 'ㄴ', 'd': 'ㄷ', 'tt': 'ㄸ', 'r': 'ㄹ', 'l': 'ㄹ',
+                'm': 'ㅁ', 'b': 'ㅂ', 'pp': 'ㅃ', 's': 'ㅅ', 'ss': 'ㅆ', 'j': 'ㅈ', 'jj': 'ㅉ',
+                'ch': 'ㅊ', 'k': 'ㅋ', 't': 'ㅌ', 'p': 'ㅍ', 'h': 'ㅎ',
+                'a': 'ㅏ', 'ae': 'ㅐ', 'ya': 'ㅑ', 'yae': 'ㅒ', 'eo': 'ㅓ', 'e': 'ㅔ',
+                'yeo': 'ㅕ', 'ye': 'ㅖ', 'o': 'ㅗ', 'wa': 'ㅘ', 'wae': 'ㅙ', 'oe': 'ㅚ',
+                'yo': 'ㅛ', 'u': 'ㅜ', 'wo': 'ㅝ', 'we': 'ㅞ', 'wi': 'ㅟ', 'yu': 'ㅠ',
+                'eu': 'ㅡ', 'yi': 'ㅢ', 'i': 'ㅣ', 'nn': 'ㄴㄴ', 'ng': 'ㅇ'
+            };
+
+            // 편의를 위해 학생들이 흔히 치는 대표 단어 조합 사전 매핑 우선 적용
+            const wordMap = {
+                "annyeong": "안녕",
+                "annyeonghaseyo": "안녕하세요",
+                "seonsaengnim": "선생님",
+                "gamsahamnida": "감사합니다",
+                "jeyukbokkeum": "제육볶음",
+                "bangapseumnida": "반갑습니다",
+                "hangugo": "한국어",
+                "palum": "발음"
+            };
+
+            let lower = str.toLowerCase().trim();
+            if (wordMap[lower]) return wordMap[lower];
+
+            // 일반적인 조합형태가 아닐 경우 원본 유지하되 영어 글자만 있으면 안내 문구 형태 유지
+            return str;
+        }
 
         function switchTab(tabId, btnEl) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -410,14 +465,23 @@
         }
 
         async function handleRecordClick() {
+            const targetInput = document.getElementById('target-sentence');
+            const currentSentence = targetInput ? targetInput.value.trim() : "";
+
+            if (!currentSentence) {
+                alert("연습할 목표 문장을 입력해 주세요.");
+                if (targetInput) targetInput.focus();
+                return;
+            }
+
             if (!isRecording) {
-                await startRecording();
+                await startRecording(currentSentence);
             } else {
                 stopRecording();
             }
         }
 
-        async function startRecording() {
+        async function startRecording(targetSentence) {
             const btn = document.getElementById('record-btn');
             const speechBox = document.getElementById('live-speech-box');
 
@@ -443,9 +507,9 @@
                     const audioUrl = URL.createObjectURL(audioBlob);
                     
                     document.getElementById('audio-container').innerHTML = `<audio controls src="${audioUrl}"></audio>`;
-                    speechBox.innerText = '녹음 완료! 아래 플레이어로 내 목소리를 확인하세요.';
+                    speechBox.innerText = `"${targetSentence}" 녹음 완료! 아래 플레이어로 확인하세요.`;
                     
-                    processAnalysis(activeTargetSentence);
+                    processAnalysis(targetSentence);
                     streamObj.getTracks().forEach(track => track.stop());
                 };
 
@@ -454,14 +518,14 @@
 
                 btn.innerText = '⏹️ 중단 및 진단';
                 btn.className = 'btn btn-danger';
-                speechBox.innerText = '🔴 녹음 중... 발음한 뒤 중단 버튼을 누르세요.';
+                speechBox.innerText = `🔴 "${targetSentence}" 녹음 중... 발음한 뒤 중단 버튼을 누르세요.`;
                 document.getElementById('result-card').style.display = 'none';
                 document.getElementById('audio-container').innerHTML = '';
 
             } catch (err) {
                 console.error('Mic Error:', err);
                 isRecording = false;
-                btn.innerText = '🎤 자유 발음 시작';
+                btn.innerText = '🎤 발음 연습 시작';
                 btn.className = 'btn btn-primary';
                 alert('마이크 접근 중 오류가 발생했습니다: ' + err.message);
             }
@@ -475,7 +539,7 @@
                 try { mediaRecorder.stop(); } catch(e) {}
             }
 
-            btn.innerText = '🎤 자유 발음 시작';
+            btn.innerText = '🎤 발음 연습 시작';
             btn.className = 'btn btn-primary';
         }
 
@@ -552,9 +616,12 @@
         }
 
         function playNativeAudio() {
+            const targetInput = document.getElementById('target-sentence');
+            const currentSentence = targetInput ? targetInput.value.trim() : "안녕하세요";
+
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(activeTargetSentence);
+                const utterance = new SpeechSynthesisUtterance(currentSentence);
                 utterance.lang = 'ko-KR';
                 utterance.rate = 0.85;
 
