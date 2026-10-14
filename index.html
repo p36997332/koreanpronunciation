@@ -367,4 +367,47 @@
                 </div>
 
                 <div style="background: #F8FAFC; padding: 10px; border-radius: 8px; border: 1px solid #E2E8F0;">
-                    <strong style="color: #1E293B; display: block; margin-bottom:
+                    <strong style="color: #1E293B; display: block; margin-bottom: 2px;">2. 파란색(우수) & 빨간색(부족) 분석</strong>
+                    발음이 우수한 음절은 🟦 파란색 상자로, 개선이 필요한 취약 음절은 🟥 빨간색 상자로 표시되어 집중 교정이 가능합니다.
+                </div>
+            </div>
+
+            <button onclick="toggleGuide(false)" style="width: 100%; margin-top: 16px; padding: 10px; background: #3B82F6; color: white; font-weight: 600; border-radius: 10px; border: none; cursor: pointer; font-size: 0.9rem;">
+                확인하였습니다
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = "";
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let audioCtx = null, analyser = null, dataArray = null;
+        let canvasEl = null, canvasCtx = null, sourceNode = null, streamObj = null;
+        let animFrameId = null;
+        let koreanVoices = [];
+
+        let historyData = JSON.parse(localStorage.getItem('korean_speech_history')) || [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCanvas();
+            renderHistory();
+            initVoices();
+        });
+
+        function initVoices() {
+            if ('speechSynthesis' in window) {
+                const loadVoices = () => {
+                    koreanVoices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('ko') || v.lang.includes('KR'));
+                };
+                loadVoices();
+                if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                    window.speechSynthesis.onvoiceschanged = loadVoices;
+                }
+            }
+        }
+
+        function switchTab(tabId, btnEl) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
