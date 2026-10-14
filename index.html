@@ -347,7 +347,7 @@
             recognition = new SR();
             recognition.lang = 'ko-KR';
             recognition.interimResults = true;
-            recognition.continuous = true;
+            recognition.continuous = false;
 
             recognition.onresult = (event) => {
                 interimTranscript = '';
