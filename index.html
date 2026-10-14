@@ -337,15 +337,12 @@
 
         function initSpeechRecognition() {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SR) {
-                alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome을 이용해 주세요.');
-                return;
-            }
+            if (!SR) return;
 
             recognition = new SR();
             recognition.lang = 'ko-KR';
             recognition.interimResults = true;
-            recognition.continuous = false; // 끊김 방지를 위해 단건 인식으로 안정화
+            recognition.continuous = true;
 
             recognition.onresult = (event) => {
                 let interim = '';
@@ -359,18 +356,8 @@
                 document.getElementById('live-speech-box').innerText = finalTranscript + interim;
             };
 
-            recognition.onerror = (event) => {
-                console.error('SpeechRecognition error:', event.error);
-            };
-
-            recognition.onend = () => {
-                if (isRecording) {
-                    isRecording = false;
-                    document.getElementById('record-btn').innerText = '🎤 발음 시작';
-                    document.getElementById('record-btn').className = 'btn btn-primary';
-                    stopAudioVisualizer();
-                    analyzeSpeechResult();
-                }
+            recognition.onerror = (e) => {
+                console.error('Speech error:', e.error);
             };
         }
 
@@ -378,42 +365,51 @@
             const btn = document.getElementById('record-btn');
 
             if (!isRecording) {
+                // 1. 녹음 상태 전환 및 초기화
+                isRecording = true;
                 finalTranscript = '';
+                btn.innerText = '⏹️ 중단 및 분석';
+                btn.className = 'btn btn-danger';
                 document.getElementById('live-speech-box').innerText = '듣고 있는 중...';
                 document.getElementById('result-card').style.display = 'none';
 
+                // 2. 음성 인식 즉시 시작
+                if (recognition) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.log('Recognition restart:', e);
+                    }
+                }
+
+                // 3. 파형 시각화용 마이크 스트림 연결
                 navigator.mediaDevices.getUserMedia({ audio: true, video: false })
                     .then(stream => {
                         streamObj = stream;
                         resizeCanvas();
                         startAudioVisualizer(stream);
-
-                        if (recognition) {
-                            try {
-                                recognition.start();
-                                isRecording = true;
-                                btn.innerText = '⏹️ 중단 및 분석';
-                                btn.className = 'btn btn-danger';
-                            } catch (e) {
-                                console.error('Recognition start failed:', e);
-                                alert('음성 인식을 시작할 수 없습니다.');
-                            }
-                        }
                     })
                     .catch(err => {
-                        console.error(err);
-                        alert('마이크 접근 권한이 필요합니다.');
+                        console.error('Mic permission error:', err);
                     });
+
             } else {
-                isRecording = false;
-                if (recognition) {
-                    try { recognition.stop(); } catch(e) {}
-                }
-                stopAudioVisualizer();
-                btn.innerText = '🎤 발음 시작';
-                btn.className = 'btn btn-primary';
-                analyzeSpeechResult();
+                stopRecordingAndAnalyze();
             }
+        }
+
+        function stopRecordingAndAnalyze() {
+            isRecording = false;
+            const btn = document.getElementById('record-btn');
+            btn.innerText = '🎤 발음 시작';
+            btn.className = 'btn btn-primary';
+
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
+            stopAudioVisualizer();
+
+            setTimeout(analyzeSpeechResult, 500);
         }
 
         function startAudioVisualizer(stream) {
@@ -523,4 +519,57 @@
                 fetch(GAS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: {
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(record)
+                });
+            }
+        }
+
+        function renderHistory() {
+            const c = document.getElementById('history-list');
+            if (!historyData.length) {
+                c.innerHTML = `<p style="color:var(--text-sub);font-size:0.9rem;">아직 연습한 기록이 없습니다.</p>`;
+                return;
+            }
+
+            c.innerHTML = historyData.map(h => `
+                <div class="history-item">
+                    <div style="font-size:0.8rem;color:var(--text-sub);">${h.studentName} | ${h.date}</div>
+                    <div style="color:var(--accent-color);font-weight:bold;font-size:0.95rem;">발음 문장: ${h.spoken}</div>
+                </div>
+            `).join('');
+        }
+
+        function checkAdminPass() {
+            if (document.getElementById('admin-pass').value === '0849') {
+                document.getElementById('admin-auth-box').style.display = 'none';
+                document.getElementById('admin-dashboard').style.display = 'block';
+                renderAdminAllHistory();
+            } else {
+                alert('비밀번호가 틀렸습니다.');
+            }
+        }
+
+        function lockAdmin() {
+            document.getElementById('admin-auth-box').style.display = 'block';
+            document.getElementById('admin-dashboard').style.display = 'none';
+            document.getElementById('admin-pass').value = '';
+        }
+
+        function renderAdminAllHistory() {
+            const c = document.getElementById('admin-all-history');
+            if (!historyData.length) {
+                c.innerHTML = `<p style="font-size:0.85rem;color:var(--text-sub);">수합된 데이터가 없습니다.</p>`;
+                return;
+            }
+
+            c.innerHTML = historyData.map(h => `
+                <div class="history-item">
+                    <div style="font-size:0.8rem;color:var(--text-sub);"><strong>${h.studentName}</strong> (${h.date})</div>
+                    <div style="font-size:0.85rem;color:#DC2626;">실제 발음: ${h.spoken}</div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
