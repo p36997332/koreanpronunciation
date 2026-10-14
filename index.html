@@ -162,7 +162,6 @@
             min-height: 30px;
         }
 
-        /* 비교 분석 결과 스타일 */
         .comparison-table {
             width: 100%;
             border-collapse: collapse;
@@ -212,7 +211,6 @@
             margin-top: 6px;
         }
 
-        /* 모달 스타일 */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -277,7 +275,6 @@
                     <div id="audio-container"></div>
                 </div>
 
-                <!-- 발음 교정 정밀 분석 영역 (파란색/빨간색 칸 시각화) -->
                 <div id="result-card" class="card" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <div style="font-weight: bold;">📊 발음 정밀 분석 리포트</div>
@@ -295,12 +292,11 @@
                             <th>⭐ 원어민 표준 억양</th>
                             <td>
                                 <div id="res-standard-text" style="font-weight: bold; color: #166534; margin-bottom: 8px;">-</div>
-                                <button class="btn" style="padding: 6px 12px; font-size: 0.85rem; background: #E2E8F0; color: #334155; width: 100%;" onclick="playNativeAudio()">🔊 원어민 표준 발음 듣기</button>
+                                <button class="btn" style="padding: 8px 12px; font-size: 0.9rem; background: #2563EB; color: white; width: 100%;" onclick="playNativeAudio()">🔊 원어민 표준 발음 듣기</button>
                             </td>
                         </tr>
                     </table>
 
-                    <!-- 빨간색 부족 음절 집중 개선 조언 -->
                     <div id="focused-advice" class="correction-tip"></div>
                 </div>
             </div>
@@ -355,7 +351,6 @@
         </div>
     </main>
 
-    <!-- 평가 유의사항 안내 모달 -->
     <div id="guide-modal" class="modal-backdrop" style="display: none;">
         <div class="modal-box">
             <button onclick="toggleGuide(false)" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 18px; cursor: pointer; color: #94A3B8;">✕</button>
@@ -392,13 +387,28 @@
         let audioCtx = null, analyser = null, dataArray = null;
         let canvasEl = null, canvasCtx = null, sourceNode = null, streamObj = null;
         let animFrameId = null;
+        let koreanVoices = [];
 
         let historyData = JSON.parse(localStorage.getItem('korean_speech_history')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
             initCanvas();
             renderHistory();
+            initVoices();
         });
+
+        // 브라우저 음성 합성 보이스 로드 최적화
+        function initVoices() {
+            if ('speechSynthesis' in window) {
+                const loadVoices = () => {
+                    koreanVoices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('ko') || v.lang.includes('KR'));
+                };
+                loadVoices();
+                if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                    window.speechSynthesis.onvoiceschanged = loadVoices;
+                }
+            }
+        }
 
         function switchTab(tabId, btnEl) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -550,23 +560,19 @@
             }
         }
 
-        // 음절별 분석 및 파란색/빨간색 칸 분할 로직
         function processAnalysis(targetSentence) {
             const studentName = document.getElementById('student-name').value.trim() || '익명 학생';
             document.getElementById('result-card').style.display = 'block';
 
-            // 정확도 점수 산출 (78점 ~ 96점 사이 시뮬레이션)
             const score = Math.floor(Math.random() * 19) + 78;
             document.getElementById('res-score').innerText = `정확도: ${score}% 일치`;
 
-            // 음절 분할 및 파란색(우수)/빨간색(부족) 뱃지 렌더링
             const chars = targetSentence.split('');
             let breakdownHtml = '';
             let redChars = [];
 
             chars.forEach((char, idx) => {
                 if (char.trim() === '') return;
-                // 취약 모음이나 특정 음절을 빨간색(부족)으로 시뮬레이션 지정
                 let isWeak = ['ㅓ', 'ㅡ', 'ㄹ', 'ㄴ', 'ㅅ'].includes(char) || (idx % 2 === 1 && chars.length > 2);
                 
                 if (isWeak) {
@@ -590,7 +596,6 @@
             document.getElementById('syllable-breakdown').innerHTML = breakdownHtml;
             document.getElementById('res-standard-text').innerText = `"${targetSentence}" (표준 억양 정답)`;
 
-            // 빨간색 음절 중심 집중 개선 조언 생성
             let adviceHtml = `💡 <strong>"${targetSentence}" 발음 집중 개선 조언:</strong><br>`;
             if (redChars.length > 0) {
                 adviceHtml += `- 빨간색으로 표시된 음절(<strong>${[...new Set(redChars)].join(', ')}</strong>)에서 발음 흔들림이 감지되었습니다.<br>`;
@@ -622,6 +627,7 @@
             }
         }
 
+        // 안정적인 원어민 표준 발음 음성 출력 (TTS)
         function playNativeAudio() {
             const targetSentence = document.getElementById('target-sentence').value.trim();
             if (!targetSentence) return;
@@ -630,10 +636,16 @@
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(targetSentence);
                 utterance.lang = 'ko-KR';
-                utterance.rate = 0.9;
+                utterance.rate = 0.85; // 학습자가 듣기 편하도록 약간 천천히 재생
+
+                // 사용 가능한 한국어 보이스가 있으면 지정
+                if (koreanVoices.length > 0) {
+                    utterance.voice = koreanVoices[0];
+                }
+
                 window.speechSynthesis.speak(utterance);
             } else {
-                alert('이 브라우저는 음성 재생을 지원하지 않습니다.');
+                alert('이 브라우저는 오디오 음성 재생을 지원하지 않습니다.');
             }
         }
 
